@@ -1,0 +1,8 @@
+{
+  "serverUser": "root",
+  "serverHost": "39.96.214.46",
+  "sshPort": 22,
+  "remoteDir": "/var/www/xiaoming-website",
+  "siteUrl": "https://www.xiaomingsix.cn/",
+  "password": ""
+}

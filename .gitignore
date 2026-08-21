@@ -32,3 +32,6 @@ dist-ssr
 
 # TRAE
 .trae
+
+# 部署配置（含服务器密码，不提交）
+deploy.config.json

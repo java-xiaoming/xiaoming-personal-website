@@ -1,5 +1,5 @@
 <script setup>
-import { siteContent, resumeUrl } from '../data/content.js'
+import { siteContent, resumeUrl, resumeDownloadName } from '../data/content.js'
 </script>
 
 <template>
@@ -29,7 +29,7 @@ import { siteContent, resumeUrl } from '../data/content.js'
       <!-- 简历下载 -->
       <a
         :href="resumeUrl"
-        download
+        :download="resumeDownloadName"
         class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-soft-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-soft"
       >
         <svg

@@ -199,6 +199,7 @@ useSeo({
         <div class="flex flex-wrap items-center gap-3">
           <a
             :href="siteContent.contact.resumeUrl"
+            :download="siteContent.contact.resumeDownloadName"
             class="inline-flex items-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-soft-md transition hover:bg-brand-700"
           >
             下载简历

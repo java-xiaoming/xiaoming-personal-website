@@ -5,6 +5,9 @@
 
 export const resumeUrl = '/resume/chen-mingzhi-ai-pm-resume.pdf'
 
+// 浏览器下载简历时的保存文件名
+export const resumeDownloadName = '27届-陈明智-AI产品经理.pdf'
+
 export const siteContent = {
   name: '陈明智',
   nameEn: 'Chen Mingzhi',
@@ -19,7 +22,7 @@ export const siteContent = {
     description:
       '计算机科学与技术专业在读，在熵变智元担任 AI 产品经理实习生，主导「智小天」视频混剪模块 0-1；并作为项目负责人落地零食电商智能客服 Agent。擅长把 AI 能力翻译成可衡量的业务结果。',
     ctaPrimary: { label: '查看作品', to: '/#works' },
-    ctaSecondary: { label: '下载简历', href: resumeUrl },
+    ctaSecondary: { label: '下载简历', href: resumeUrl, download: resumeDownloadName },
   },
 
   // ===== 求职意向 =====
@@ -197,6 +200,7 @@ export const siteContent = {
     phone: '17736806180',
     wechat: '待补充',
     resumeUrl,
+    resumeDownloadName,
   },
 
   // ===== 导航 =====

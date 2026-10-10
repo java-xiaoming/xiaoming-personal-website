@@ -73,6 +73,7 @@ import { siteContent } from '../../data/content.js'
             </router-link>
             <a
               :href="siteContent.hero.ctaSecondary.href"
+              :download="siteContent.hero.ctaSecondary.download"
               class="inline-flex items-center gap-2 rounded-full border border-line bg-white px-7 py-3.5 text-base font-semibold text-ink transition-all duration-200 hover:bg-surface"
             >
               <svg

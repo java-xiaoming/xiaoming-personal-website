@@ -104,7 +104,7 @@ import SectionWrapper from '../SectionWrapper.vue'
       <!-- 简历 -->
       <a
         :href="siteContent.contact.resumeUrl"
-        download
+        :download="siteContent.contact.resumeDownloadName"
         class="group rounded-2xl border border-line bg-card p-6 shadow-soft-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-soft"
       >
         <div

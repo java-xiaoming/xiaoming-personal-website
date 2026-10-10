@@ -31,8 +31,8 @@ export const siteContent = {
     items: [
       { label: '目标岗位', value: 'AI 产品经理（实习 / 2027 届校招）' },
       { label: '毕业时间', value: '2027 年 6 月（本科）' },
-      { label: '期望城市', value: '待补充' },
-      { label: '可到岗时间', value: '待补充' },
+      { label: '期望城市', value: '不限' },
+      { label: '可到岗时间', value: '一周内' },
       { label: '当前状态', value: '积极机会中' },
     ],
   },
@@ -90,7 +90,7 @@ export const siteContent = {
     {
       company: '熵变智元（北京）科技有限公司',
       role: 'AI 产品经理实习生',
-      period: '2026.04 – 2026.08',
+      period: '2026.05 – 2026.08',
       summary:
         '负责企业级 AIGC 营销 SaaS「智小天 AI 智能营销平台」的产品设计与迭代，服务大型招商联营客户，助力招商内容工业化生产。',
       highlights: [
@@ -112,7 +112,7 @@ export const siteContent = {
       summary:
         '面向大型招商联营客户，将单条宣传视频剪辑周期从 1 天缩短至 20 分钟，人均日产能提升约 10 倍。',
       role: 'AI 产品经理（0-1 主导）',
-      period: '2026.04 – 2026.08',
+      period: '2026.05 – 2026.08',
       cover: '/images/projects/zhixiaotian-cover.svg',
       metrics: [
         {
@@ -198,7 +198,7 @@ export const siteContent = {
       '欢迎就 AI 产品经理岗位与我沟通，邮件通常会在 24 小时内回复。',
     email: '3451237404@qq.com',
     phone: '17736806180',
-    wechat: '待补充',
+    wechat: 'xiaoming666cmz',
     resumeUrl,
     resumeDownloadName,
   },
@@ -217,6 +217,5 @@ export const siteContent = {
   // ===== 页脚 =====
   footer: {
     copyright: '© 2026 陈明智 · AI 产品经理',
-    subtitle: '用 Vue 3 构建 · 部署于阿里云',
   },
 }

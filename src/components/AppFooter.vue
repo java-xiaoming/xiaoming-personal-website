@@ -44,8 +44,7 @@ import { siteContent } from '../data/content.js'
       <div
         class="flex flex-col items-center justify-between gap-2 text-xs text-muted sm:flex-row"
       >
-        <p>{{ siteContent.footer.copyright }}</p>
-        <p>{{ siteContent.footer.subtitle }}</p>
+        <p class="mx-auto sm:mx-0">{{ siteContent.footer.copyright }}</p>
       </div>
     </div>
   </footer>

@@ -109,8 +109,6 @@ import { siteContent } from '../../data/content.js'
               >
                 {{ siteContent.hero.name.charAt(0) }}
               </span>
-              <p class="text-sm font-medium">职业照占位</p>
-              <p class="text-xs">提供真实照片后可替换</p>
             </div>
 
             <!-- 角落装饰小标签 -->

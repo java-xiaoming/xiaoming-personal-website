@@ -24,54 +24,55 @@ onUnmounted(() => {
 
 <template>
   <nav
-    class="fixed left-0 right-0 top-0 z-50 border-b-4 border-ink/10 backdrop-blur-md transition-all duration-300"
+    class="fixed left-0 right-0 top-0 z-50 border-b backdrop-blur-md transition-all duration-300"
     :class="
       scrolled
-        ? 'bg-cream/90 shadow-cartoon-sm'
-        : 'bg-cream/60'
+        ? 'border-line bg-white/90 shadow-soft-sm'
+        : 'border-transparent bg-white/60'
     "
   >
     <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
       <!-- Logo -->
-      <a
-        href="#hero"
-        class="flex items-center gap-2 font-display text-2xl font-bold text-ink transition-transform hover:scale-105"
+      <router-link
+        to="/"
+        class="flex items-center gap-2.5 text-lg font-bold text-ink transition-opacity hover:opacity-80"
         @click="closeMobileMenu"
       >
         <span
-          class="flex h-10 w-10 items-center justify-center rounded-full border-4 border-ink bg-mint-400 text-lg shadow-cartoon-sm"
+          class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white shadow-soft-sm"
         >
           {{ siteContent.name.charAt(0) }}
         </span>
-        <span class="hidden sm:inline">{{ siteContent.name }}</span>
-      </a>
+        <span class="hidden sm:inline">{{ siteContent.name }} · AI PM</span>
+      </router-link>
 
       <!-- 桌面端导航链接 -->
-      <ul class="hidden items-center gap-2 md:flex">
-        <li v-for="link in siteContent.nav.links" :key="link.href">
-          <a
-            :href="link.href"
-            class="rounded-full px-5 py-2 font-display font-semibold text-ink transition-all duration-200 hover:bg-mint-300 hover:shadow-cartoon-sm"
+      <ul class="hidden items-center gap-1 md:flex">
+        <li v-for="link in siteContent.nav.links" :key="link.to">
+          <router-link
+            :to="link.to"
+            class="rounded-full px-4 py-2 text-sm font-medium text-ink-soft transition-all duration-200 hover:bg-brand-50 hover:text-brand-700"
           >
             {{ link.label }}
-          </a>
+          </router-link>
         </li>
       </ul>
 
       <!-- 移动端汉堡按钮 -->
       <button
-        class="flex h-11 w-11 items-center justify-center rounded-full border-4 border-ink bg-mint-400 shadow-cartoon-sm transition-all duration-200 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none md:hidden"
+        class="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-ink transition hover:bg-surface md:hidden"
         :aria-label="mobileMenuOpen ? '关闭菜单' : '打开菜单'"
+        :aria-expanded="mobileMenuOpen"
         @click="mobileMenuOpen = !mobileMenuOpen"
       >
         <svg
           v-if="!mobileMenuOpen"
-          width="22"
-          height="22"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#334155"
-          stroke-width="3"
+          stroke="currentColor"
+          stroke-width="2"
           stroke-linecap="round"
         >
           <line x1="3" y1="6" x2="21" y2="6" />
@@ -80,12 +81,12 @@ onUnmounted(() => {
         </svg>
         <svg
           v-else
-          width="22"
-          height="22"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#334155"
-          stroke-width="3"
+          stroke="currentColor"
+          stroke-width="2"
           stroke-linecap="round"
         >
           <line x1="6" y1="6" x2="18" y2="18" />
@@ -105,17 +106,17 @@ onUnmounted(() => {
     >
       <div
         v-if="mobileMenuOpen"
-        class="border-t-4 border-ink/10 bg-cream/95 px-6 py-4 backdrop-blur-md md:hidden"
+        class="border-t border-line bg-white/95 px-6 py-4 backdrop-blur-md md:hidden"
       >
-        <ul class="flex flex-col gap-3">
-          <li v-for="link in siteContent.nav.links" :key="link.href">
-            <a
-              :href="link.href"
-              class="block rounded-full border-4 border-ink bg-white px-5 py-3 text-center font-display text-lg font-semibold text-ink shadow-cartoon-sm transition-all duration-200 hover:translate-x-1 hover:translate-y-1 hover:bg-mint-300 hover:shadow-none"
+        <ul class="flex flex-col gap-1">
+          <li v-for="link in siteContent.nav.links" :key="link.to">
+            <router-link
+              :to="link.to"
+              class="block rounded-xl px-5 py-3 text-base font-medium text-ink-soft transition hover:bg-brand-50 hover:text-brand-700"
               @click="closeMobileMenu"
             >
               {{ link.label }}
-            </a>
+            </router-link>
           </li>
         </ul>
       </div>

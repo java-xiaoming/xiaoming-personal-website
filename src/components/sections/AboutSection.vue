@@ -1,156 +1,96 @@
 <script setup>
 import { siteContent } from '../../data/content.js'
 import SectionWrapper from '../SectionWrapper.vue'
-import { useScrollAnimation } from '../../composables/useScrollAnimation.js'
-import { ref, computed } from 'vue'
-
-const { target: skillRef, isVisible: skillsVisible } = useScrollAnimation({
-  threshold: 0.2,
-})
-const { target: statsRef, isVisible: statsVisible } = useScrollAnimation({
-  threshold: 0.3,
-})
-
-// 技能条颜色映射
-const barColorMap = {
-  mint: 'bg-mint-400',
-  sky: 'bg-sky-400',
-  coral: 'bg-coral',
-  sunny: 'bg-sunny',
-}
-
-// 趣味统计数字计数动画
-const animatedStats = ref(siteContent.about.stats.map(() => 0))
-
-function animateStats() {
-  siteContent.about.stats.forEach((stat, index) => {
-    const duration = 1500
-    const startTime = performance.now()
-    const target = stat.value
-
-    function update(currentTime) {
-      const elapsed = currentTime - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      // easeOutCubic
-      const eased = 1 - Math.pow(1 - progress, 3)
-      animatedStats.value[index] = Math.round(eased * target)
-      if (progress < 1) {
-        requestAnimationFrame(update)
-      }
-    }
-    requestAnimationFrame(update)
-  })
-}
-
-// 监听 statsVisible 触发计数
-import { watch } from 'vue'
-watch(statsVisible, (val) => {
-  if (val) animateStats()
-})
 </script>
 
 <template>
-  <SectionWrapper id="about" bgClass="bg-cream">
+  <SectionWrapper id="about" bgClass="bg-card">
     <!-- 区块标题 -->
-    <div class="mb-12 text-center md:mb-16">
-      <h2
-        class="font-display text-4xl font-bold text-ink sm:text-5xl md:text-6xl"
-      >
+    <div class="mb-12 md:mb-16">
+      <h2 class="text-3xl font-bold text-ink sm:text-4xl md:text-5xl">
         {{ siteContent.about.title }}
       </h2>
-      <div class="mx-auto mt-4 flex justify-center gap-2">
-        <div class="h-2 w-12 rounded-full bg-mint-400"></div>
-        <div class="h-2 w-6 rounded-full bg-sky-400"></div>
-        <div class="h-2 w-3 rounded-full bg-coral"></div>
-      </div>
+      <p class="mt-3 text-base text-muted md:text-lg">
+        技术背景 + 产品训练，习惯先定义问题与指标，再谈解决方案。
+      </p>
     </div>
 
-    <div class="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
-      <!-- 左侧：自我介绍 + 兴趣 -->
+    <div class="grid grid-cols-1 gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
+      <!-- 左侧：自述 -->
       <div>
-        <!-- 自我介绍卡片 -->
         <div
-          class="rounded-3xl border-4 border-ink bg-white p-8 shadow-cartoon"
+          v-for="(paragraph, index) in siteContent.about.paragraphs"
+          :key="index"
+          class="mb-4 text-base leading-relaxed text-ink-soft last:mb-0 md:text-lg"
         >
-          <div
-            v-for="(paragraph, index) in siteContent.about.paragraphs"
-            :key="index"
-            class="mb-4 last:mb-0 text-lg leading-relaxed text-ink/80"
-          >
-            {{ paragraph }}
-          </div>
+          {{ paragraph }}
         </div>
 
-        <!-- 兴趣标签 -->
+        <!-- 教育经历 -->
         <div class="mt-8">
-          <h3 class="mb-4 font-display text-xl font-semibold text-ink">
-            我的兴趣 🎯
+          <h3 class="mb-4 text-sm font-bold uppercase tracking-wider text-muted">
+            教育经历
           </h3>
-          <div class="flex flex-wrap gap-3">
-            <span
-              v-for="interest in siteContent.about.interests"
-              :key="interest.label"
-              class="inline-flex items-center gap-2 rounded-full border-4 border-ink bg-white px-4 py-2 font-display font-semibold shadow-cartoon-sm transition-all duration-200 hover:-translate-y-1 hover:bg-mint-200"
-            >
-              <span class="text-xl">{{ interest.emoji }}</span>
-              {{ interest.label }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 右侧：技能条 -->
-      <div>
-        <div
-          ref="skillRef"
-          class="rounded-3xl border-4 border-ink bg-white p-8 shadow-cartoon"
-        >
-          <h3 class="mb-6 font-display text-xl font-semibold text-ink">
-            技能栈 💪
-          </h3>
-          <div class="space-y-5">
-            <div v-for="skill in siteContent.about.skills" :key="skill.name">
-              <div
-                class="mb-2 flex items-center justify-between font-display font-semibold"
-              >
-                <span class="text-ink">{{ skill.name }}</span>
-                <span class="text-ink/60">{{ skill.level }}%</span>
+          <div
+            v-for="edu in siteContent.about.education"
+            :key="edu.school"
+            class="rounded-2xl border border-line bg-surface p-5 md:p-6"
+          >
+            <div class="flex flex-col gap-1 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p class="text-base font-bold text-ink md:text-lg">{{ edu.school }}</p>
+                <p class="mt-0.5 text-sm text-ink-soft">{{ edu.major }}</p>
               </div>
-              <div
-                class="h-6 w-full overflow-hidden rounded-full border-4 border-ink bg-mint-50"
-              >
-                <div
-                  class="skill-bar-fill h-full rounded-full"
-                  :class="barColorMap[skill.color] || 'bg-mint-400'"
-                  :style="{
-                    width: skillsVisible ? skill.level + '%' : '0%',
-                  }"
-                ></div>
-              </div>
+              <span class="text-sm font-medium text-muted">{{ edu.period }}</span>
             </div>
+            <ul class="mt-4 flex flex-wrap gap-2">
+              <li
+                v-for="honor in edu.honors"
+                :key="honor"
+                class="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="8" r="6" />
+                  <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                </svg>
+                {{ honor }}
+              </li>
+            </ul>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 趣味数据统计 -->
-    <div ref="statsRef" class="mt-12 grid grid-cols-2 gap-4 md:mt-16 md:grid-cols-4 md:gap-6">
-      <div
-        v-for="(stat, index) in siteContent.about.stats"
-        :key="stat.label"
-        class="rounded-3xl border-4 border-ink bg-white p-6 text-center shadow-cartoon-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-cartoon"
-        :class="[
-          index % 4 === 0 ? 'bg-mint-100' : '',
-          index % 4 === 1 ? 'bg-sky-100' : '',
-          index % 4 === 2 ? 'bg-coral/20' : '',
-          index % 4 === 3 ? 'bg-sunny/20' : '',
-        ]"
-      >
-        <div class="font-display text-3xl font-bold text-ink md:text-4xl">
-          {{ animatedStats[index] }}{{ stat.suffix }}
-        </div>
-        <div class="mt-2 font-display text-sm font-semibold text-ink/60">
-          {{ stat.label }}
+      <!-- 右侧：技能分组 -->
+      <div>
+        <h3 class="mb-4 text-sm font-bold uppercase tracking-wider text-muted">
+          技能矩阵
+        </h3>
+        <div class="space-y-4">
+          <div
+            v-for="group in siteContent.about.skillGroups"
+            :key="group.title"
+            class="rounded-2xl border border-line bg-surface p-5"
+          >
+            <h4 class="text-sm font-bold text-ink">{{ group.title }}</h4>
+            <ul class="mt-3 flex flex-wrap gap-2">
+              <li
+                v-for="item in group.items"
+                :key="item"
+                class="rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700"
+              >
+                {{ item }}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

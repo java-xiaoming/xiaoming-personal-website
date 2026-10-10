@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <rect width="1280" height="720" fill="#ffffff"/>
+
+  <text x="640" y="80" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="34" font-weight="700" fill="#0f172a">智能客服 Agent · 三大能力模块</text>
+  <text x="640" y="122" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="20" fill="#94a3b8">结构示意图（占位）· 高风险信息显式确认 / 转人工兜底</text>
+
+  <!-- 用户输入 -->
+  <rect x="470" y="180" width="340" height="80" rx="16" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="640" y="230" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="24" font-weight="700" fill="#334155">用户会话输入</text>
+
+  <!-- 分流竖线 -->
+  <g stroke="#94a3b8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M640 260 L640 320"/>
+    <path d="M240 320 L1040 320"/>
+    <path d="M240 320 L240 360"/>
+    <path d="M640 320 L640 360"/>
+    <path d="M1040 320 L1040 360"/>
+    <polyline points="230,344 240,364 250,344"/>
+    <polyline points="630,344 640,364 650,344"/>
+    <polyline points="1030,344 1040,364 1050,344"/>
+  </g>
+
+  <!-- 三个模块 -->
+  <g font-family="PingFang SC, Microsoft YaHei, sans-serif">
+    <rect x="80" y="370" width="320" height="200" rx="16" fill="#eef2ff" stroke="#4f46e5" stroke-opacity="0.35"/>
+    <text x="240" y="428" text-anchor="middle" font-size="25" font-weight="700" fill="#4338ca">记忆中枢</text>
+    <text x="240" y="472" text-anchor="middle" font-size="18" fill="#64748b">稳定偏好 / 忌口提取</text>
+    <text x="240" y="508" text-anchor="middle" font-size="18" fill="#64748b">新增 · 更新 · 删除</text>
+    <text x="240" y="544" text-anchor="middle" font-size="18" fill="#64748b">冲突显式确认</text>
+
+    <rect x="480" y="370" width="320" height="200" rx="16" fill="#f0fdfa" stroke="#0d9488" stroke-opacity="0.35"/>
+    <text x="640" y="428" text-anchor="middle" font-size="25" font-weight="700" fill="#0f766e">商品推荐</text>
+    <text x="640" y="472" text-anchor="middle" font-size="18" fill="#64748b">需求拆解与追问</text>
+    <text x="640" y="508" text-anchor="middle" font-size="18" fill="#64748b">联动会员 / 券 / 活动</text>
+    <text x="640" y="544" text-anchor="middle" font-size="18" fill="#64748b">主备方案 + 合规话术</text>
+
+    <rect x="880" y="370" width="320" height="200" rx="16" fill="#eef2ff" stroke="#4f46e5" stroke-opacity="0.35"/>
+    <text x="1040" y="428" text-anchor="middle" font-size="25" font-weight="700" fill="#4338ca">订单查询</text>
+    <text x="1040" y="472" text-anchor="middle" font-size="18" fill="#64748b">意图识别 / 边界界定</text>
+    <text x="1040" y="508" text-anchor="middle" font-size="18" fill="#64748b">订单号 / 手机号双通道</text>
+    <text x="1040" y="544" text-anchor="middle" font-size="18" fill="#64748b">异常自动转人工</text>
+  </g>
+
+  <!-- 底部兜底 -->
+  <rect x="430" y="620" width="420" height="56" rx="28" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="640" y="656" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="20" font-weight="600" fill="#c2410c">高风险信息：宁可多问 / 转人工，也不让模型「猜」</text>
+</svg>

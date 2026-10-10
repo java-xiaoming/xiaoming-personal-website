@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <defs>
+    <linearGradient id="sBg" x1="0" y1="0" x2="1280" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f0fdfa"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#sBg)"/>
+
+  <circle cx="160" cy="140" r="160" fill="#0d9488" fill-opacity="0.07"/>
+  <circle cx="1140" cy="620" r="180" fill="#4f46e5" fill-opacity="0.06"/>
+
+  <!-- 对话气泡图标 -->
+  <rect x="520" y="180" width="240" height="110" rx="24" fill="#0d9488"/>
+  <circle cx="572" cy="235" r="10" fill="#ffffff"/>
+  <circle cx="640" cy="235" r="10" fill="#ffffff"/>
+  <circle cx="708" cy="235" r="10" fill="#ffffff"/>
+  <rect x="560" y="285" width="120" height="34" rx="17" fill="#4f46e5" fill-opacity="0.85"/>
+
+  <text x="640" y="400" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="52" font-weight="700" fill="#0f172a">零食电商智能客服 Agent</text>
+  <text x="640" y="460" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="26" fill="#64748b">偏好记忆 · 商品推荐 · 订单查询</text>
+
+  <rect x="530" y="520" width="220" height="48" rx="24" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="640" y="551" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="20" fill="#94a3b8">封面占位图 · 待替换</text>
+</svg>

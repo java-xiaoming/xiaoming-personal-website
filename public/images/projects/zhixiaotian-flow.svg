@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" fill="none">
+  <rect width="1280" height="720" fill="#ffffff"/>
+
+  <text x="640" y="80" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="34" font-weight="700" fill="#0f172a">视频混剪模块 · 六步用户流程</text>
+  <text x="640" y="122" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="20" fill="#94a3b8">流程示意图（占位）· 上线后可替换为真实原型截图</text>
+
+  <!-- 第一行三个框 -->
+  <g font-family="PingFang SC, Microsoft YaHei, sans-serif">
+    <rect x="90" y="200" width="300" height="130" rx="16" fill="#eef2ff" stroke="#4f46e5" stroke-opacity="0.35"/>
+    <text x="240" y="258" text-anchor="middle" font-size="26" font-weight="700" fill="#4338ca">1 · 项目创建</text>
+    <text x="240" y="298" text-anchor="middle" font-size="18" fill="#64748b">新建混剪项目</text>
+
+    <rect x="490" y="200" width="300" height="130" rx="16" fill="#eef2ff" stroke="#4f46e5" stroke-opacity="0.35"/>
+    <text x="640" y="258" text-anchor="middle" font-size="26" font-weight="700" fill="#4338ca">2 · 视频设置</text>
+    <text x="640" y="298" text-anchor="middle" font-size="18" fill="#64748b">比例 / 风格 / 配音</text>
+
+    <rect x="890" y="200" width="300" height="130" rx="16" fill="#eef2ff" stroke="#4f46e5" stroke-opacity="0.35"/>
+    <text x="1040" y="258" text-anchor="middle" font-size="26" font-weight="700" fill="#4338ca">3 · 脚本生成</text>
+    <text x="1040" y="298" text-anchor="middle" font-size="18" fill="#64748b">AI 生成营销文案</text>
+  </g>
+
+  <!-- 箭头 第一行 -->
+  <g stroke="#4f46e5" stroke-width="3" stroke-linecap="round">
+    <line x1="400" y1="265" x2="470" y2="265"/>
+    <polyline points="458,255 478,265 458,275" fill="none"/>
+    <line x1="800" y1="265" x2="870" y2="265"/>
+    <polyline points="858,255 878,265 858,275" fill="none"/>
+  </g>
+
+  <!-- 折返箭头：从 3 下方到第二行 4 -->
+  <g stroke="#0d9488" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1040 340 L1040 400 L240 400 L240 440"/>
+    <polyline points="230,424 240,444 250,424"/>
+  </g>
+
+  <!-- 第二行三个框 -->
+  <g font-family="PingFang SC, Microsoft YaHei, sans-serif">
+    <rect x="90" y="450" width="300" height="130" rx="16" fill="#f0fdfa" stroke="#0d9488" stroke-opacity="0.35"/>
+    <text x="240" y="508" text-anchor="middle" font-size="26" font-weight="700" fill="#0f766e">4 · 素材上传</text>
+    <text x="240" y="548" text-anchor="middle" font-size="18" fill="#64748b">视频 / 图片素材</text>
+
+    <rect x="490" y="450" width="300" height="130" rx="16" fill="#f0fdfa" stroke="#0d9488" stroke-opacity="0.35"/>
+    <text x="640" y="508" text-anchor="middle" font-size="26" font-weight="700" fill="#0f766e">5 · 视频生成</text>
+    <text x="640" y="548" text-anchor="middle" font-size="18" fill="#64748b">自动混剪合成</text>
+
+    <rect x="890" y="450" width="300" height="130" rx="16" fill="#f0fdfa" stroke="#0d9488" stroke-opacity="0.35"/>
+    <text x="1040" y="508" text-anchor="middle" font-size="26" font-weight="700" fill="#0f766e">6 · 视频预览</text>
+    <text x="1040" y="548" text-anchor="middle" font-size="18" fill="#64748b">预览 / 下载成片</text>
+  </g>
+
+  <!-- 箭头 第二行 -->
+  <g stroke="#0d9488" stroke-width="3" stroke-linecap="round">
+    <line x1="400" y1="515" x2="470" y2="515"/>
+    <polyline points="458,505 478,515 458,525" fill="none"/>
+    <line x1="800" y1="515" x2="870" y2="515"/>
+    <polyline points="858,505 878,515 858,525" fill="none"/>
+  </g>
+
+  <text x="640" y="660" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="18" fill="#94a3b8">MVP 优先保证「成片可用、流程闭环」，复杂自定义剪辑后置</text>
+</svg>

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>音色克隆 · 智小天</title>
+<link rel="stylesheet" href="../shared/styles.css" />
+<style>
+  .vc-layout { display: grid; grid-template-columns: 1fr 400px; gap: 24px; align-items: start; }
+
+  /* 顶部工具栏 */
+  .vc-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .vc-search { position: relative; flex: 1; min-width: 220px; max-width: 360px; }
+  .vc-search .zxt-input { padding-left: 38px; }
+  .vc-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--zxt-text-muted); width: 18px; height: 18px; }
+  .vc-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* 音色卡片网格 */
+  .vc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .vc-card {
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border);
+    border-radius: 16px; padding: 18px; transition: all .2s; position: relative;
+  }
+  .vc-card:hover { border-color: var(--zxt-border-strong); box-shadow: var(--zxt-shadow-card); transform: translateY(-2px); }
+  .vc-card__head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .vc-card__avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 18px; color: #041817; }
+  .vc-card__avatar--female { background: linear-gradient(135deg, #ff9eb5, #ff6b9d); }
+  .vc-card__avatar--male { background: linear-gradient(135deg, #6bb8ff, #28b1e8); }
+  .vc-card__avatar--neutral { background: linear-gradient(135deg, #b59bff, #7c5cff); }
+  .vc-card__name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .vc-card__meta { font-size: 12px; color: var(--zxt-text-muted); }
+  .vc-card__desc { font-size: 13px; color: var(--zxt-text-secondary); margin-bottom: 14px; min-height: 38px; line-height: 1.5; }
+  .vc-card__scenes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .vc-card__scene { font-size: 11px; padding: 3px 9px; border-radius: 6px; background: var(--zxt-surface-soft); color: var(--zxt-text-muted); }
+  .vc-card__wave { display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; background: var(--zxt-surface-soft); border-radius: 10px; margin-bottom: 14px; }
+  .vc-card__bars { flex: 1; display: flex; align-items: center; gap: 2px; height: 100%; }
+  .vc-card__bars span { flex: 1; background: var(--zxt-gradient-brand); border-radius: 2px; opacity: .8; }
+  .vc-card__play { width: 32px; height: 32px; border-radius: 50%; background: var(--zxt-gradient-brand); color: #041817; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .vc-card__play.is-playing { animation: zxt-pulse 1.2s ease infinite; }
+  @keyframes zxt-pulse { 0%,100%{ box-shadow: 0 0 0 0 rgba(36,186,180,.5);} 50%{ box-shadow: 0 0 0 8px rgba(36,186,180,0);} }
+  .vc-card__foot { display: flex; align-items: center; justify-content: space-between; }
+  .vc-card__time { font-size: 12px; color: var(--zxt-text-muted); }
+  .vc-card__ops { display: flex; gap: 4px; }
+  .vc-card__ops button { width: 30px; height: 30px; border-radius: 7px; color: var(--zxt-text-muted); display: flex; align-items: center; justify-content: center; }
+  .vc-card__ops button:hover { background: var(--zxt-surface-soft); color: var(--zxt-text-primary); }
+
+  /* 训练中/失败遮罩 */
+  .vc-card__status-overlay { border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+  .vc-card__status-overlay--training { background: rgba(73,250,249,.08); border: 1px solid rgba(73,250,249,.2); }
+  .vc-card__status-overlay--pre { background: rgba(243,192,75,.08); border: 1px solid rgba(243,192,75,.2); }
+  .vc-card__status-overlay--fail { background: rgba(239,100,100,.08); border: 1px solid rgba(239,100,100,.25); }
+  .vc-card__status-label { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 8px; font-weight: 500; }
+  .vc-card__status-label .zxt-icon { width: 14px; height: 14px; }
+  .vc-card__err { font-size: 12px; color: var(--zxt-text-secondary); margin-top: 6px; line-height: 1.5; }
+
+  /* 右侧创建面板 */
+  .vc-create {
+    position: sticky; top: calc(var(--zxt-topbar-h) + 16px);
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border);
+    border-radius: 20px; padding: 24px; max-height: calc(100vh - 100px); overflow-y: auto;
+  }
+  .vc-create__title { font-size: 18px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .vc-create__sub { font-size: 13px; color: var(--zxt-text-muted); margin-bottom: 22px; }
+
+  .vc-source-tabs { display: flex; gap: 4px; background: var(--zxt-chip-bg); padding: 4px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--zxt-border); }
+  .vc-source-tab { flex: 1; padding: 9px; text-align: center; border-radius: 7px; font-size: 13px; color: var(--zxt-text-secondary); cursor: pointer; transition: all .18s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .vc-source-tab.is-active { background: var(--zxt-surface-elevated); color: var(--zxt-text-primary); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  .vc-source-tab svg { width: 15px; height: 15px; }
+
+  /* 录音区 */
+  .vc-record {
+    border: 1.5px dashed var(--zxt-border); border-radius: 16px;
+    padding: 24px 18px; text-align: center; margin-bottom: 18px; transition: all .2s;
+  }
+  .vc-record.is-recording { border-color: var(--zxt-danger); background: rgba(239,100,100,.05); }
+  .vc-record__btn {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 14px;
+    background: var(--zxt-gradient-brand); color: #041817;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 10px 30px rgba(36,186,180,.35); transition: all .2s; position: relative;
+  }
+  .vc-record__btn svg { width: 28px; height: 28px; }
+  .vc-record.is-recording .vc-record__btn { background: var(--zxt-danger); box-shadow: 0 10px 30px rgba(239,100,100,.4); color: #fff; }
+  .vc-record__time { font-size: 28px; font-weight: 700; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .vc-record__hint { font-size: 12px; color: var(--zxt-text-muted); margin-bottom: 14px; }
+  .vc-record__hint.is-ok { color: var(--zxt-success); }
+  .vc-waveform { display: flex; align-items: center; justify-content: center; gap: 3px; height: 48px; margin-bottom: 14px; }
+  .vc-waveform__bar { width: 3px; background: var(--zxt-gradient-brand); border-radius: 2px; height: 20%; transition: height .12s ease; }
+  .vc-record.is-recording .vc-waveform__bar { animation: vcwave .8s ease-in-out infinite; }
+  @keyframes vcwave { 0%,100%{ height: 20%; } 50%{ height: 80%; } }
+  .vc-record__tip { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--zxt-text-muted); }
+
+  /* 上传区 */
+  .vc-upload {
+    border: 1.5px dashed var(--zxt-border); border-radius: 16px;
+    padding: 32px 18px; text-align: center; cursor: pointer; margin-bottom: 18px; transition: all .2s;
+  }
+  .vc-upload:hover { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); }
+  .vc-upload__icon { width: 48px; height: 48px; border-radius: 50%; background: var(--zxt-surface-soft); color: var(--zxt-text-muted); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .vc-upload__icon svg { width: 22px; height: 22px; }
+  .vc-upload__text { font-size: 14px; color: var(--zxt-text-secondary); margin-bottom: 4px; }
+  .vc-upload__hint { font-size: 12px; color: var(--zxt-text-muted); }
+  .vc-upload__file { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--zxt-surface-soft); border-radius: 10px; margin-bottom: 14px; }
+  .vc-upload__file-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--zxt-accent-soft); color: var(--zxt-info); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .vc-upload__file-meta { flex: 1; min-width: 0; }
+  .vc-upload__file-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vc-upload__file-size { font-size: 11px; color: var(--zxt-text-muted); }
+  .vc-upload__file-remove { color: var(--zxt-text-muted); width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .vc-upload__file-remove:hover { color: var(--zxt-danger); background: rgba(239,100,100,.1); }
+
+  /* 模型选择 */
+  .vc-model { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .vc-model__opt { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid var(--zxt-border); border-radius: 12px; cursor: pointer; transition: all .18s; }
+  .vc-model__opt:hover { border-color: var(--zxt-border-strong); }
+  .vc-model__opt.is-active { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); }
+  .vc-model__radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--zxt-border); margin-top: 1px; flex-shrink: 0; position: relative; }
+  .vc-model__opt.is-active .vc-model__radio { border-color: var(--zxt-info); }
+  .vc-model__opt.is-active .vc-model__radio::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--zxt-info); }
+  .vc-model__title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+  .vc-model__desc { font-size: 12px; color: var(--zxt-text-muted); line-height: 1.5; }
+
+  .vc-section-label { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--zxt-text-secondary); }
+
+  @media (max-width: 1080px) { .vc-layout { grid-template-columns: 1fr; } .vc-create { position: static; max-height: none; } }
+</style>
+</head>
+<body class="with-main-sidebar">
+
+<!-- 主侧栏 -->
+<aside class="main-sidebar">
+  <a href="../index.html" class="main-sidebar__logo" title="返回原型首页">智</a>
+  <nav class="main-sidebar__nav">
+    <a href="../digital-human/digital-human-list.html" class="main-sidebar__item" title="数字人">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-user-round"/></svg>
+    </a>
+    <a href="voice-clone.html" class="main-sidebar__item is-active" title="音色克隆">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-audio-lines"/></svg>
+    </a>
+    <a href="../video-mixer/video-mixer.html" class="main-sidebar__item" title="视频混剪">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-scissors"/></svg>
+    </a>
+  </nav>
+  <div class="main-sidebar__user">Z</div>
+</aside>
+
+<!-- 顶栏 -->
+<header class="zxt-topbar">
+  <a href="../index.html" class="zxt-topbar-back" title="返回">
+    <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg>
+  </a>
+  <div class="zxt-topbar-title">音色克隆</div>
+  <div class="zxt-topbar-sub">30 秒样本，复刻专属声音</div>
+  <div class="zxt-topbar__spacer"></div>
+</header>
+
+<main style="padding-bottom: 48px;">
+  <div class="vc-layout">
+    <!-- 左：音色库 -->
+    <div>
+      <div class="vc-toolbar">
+        <div class="vc-search">
+          <svg class="zxt-icon"><use href="../shared/icons.svg#i-search"/></svg>
+          <input class="zxt-input" id="searchInput" placeholder="搜索音色名称、场景..." />
+        </div>
+        <div class="vc-filters" data-chip-group id="statusFilter">
+          <span class="zxt-chip zxt-chip--active" data-value="all">全部</span>
+          <span class="zxt-chip" data-value="Success">已就绪</span>
+          <span class="zxt-chip" data-value="Training">训练中</span>
+          <span class="zxt-chip" data-value="PreTraining">待训练</span>
+          <span class="zxt-chip" data-value="Fail">失败</span>
+        </div>
+      </div>
+      <div class="vc-grid" id="voiceGrid"></div>
+    </div>
+
+    <!-- 右：创建面板 -->
+    <aside class="vc-create">
+      <div class="vc-create__title">
+        <svg class="zxt-icon" style="color:var(--zxt-info);"><use href="../shared/icons.svg#i-wand"/></svg>
+        克隆新音色
+      </div>
+      <div class="vc-create__sub">录制或上传 30 秒清晰人声，即可生成专属音色</div>
+
+      <!-- 来源切换 -->
+      <div class="vc-source-tabs">
+        <div class="vc-source-tab is-active" data-source="record">
+          <svg class="zxt-icon"><use href="../shared/icons.svg#i-mic"/></svg> 录音
+        </div>
+        <div class="vc-source-tab" data-source="upload">
+          <svg class="zxt-icon"><use href="../shared/icons.svg#i-upload"/></svg> 上传音频
+        </div>
+      </div>
+
+      <!-- 录音面板 -->
+      <div data-source-panel="record">
+        <div class="vc-record" id="recordBox">
+          <div class="vc-record__btn" id="recordBtn">
+            <svg class="zxt-icon"><use href="../shared/icons.svg#i-mic"/></svg>
+          </div>
+          <div class="vc-record__time" id="recordTime">00:00</div>
+          <div class="vc-record__hint" id="recordHint">点击开始录音，至少 30 秒</div>
+          <div class="vc-waveform" id="waveform"></div>
+          <div class="vc-record__tip">
+            <svg class="zxt-icon" style="width:14px;height:14px;"><use href="../shared/icons.svg#i-alert"/></svg>
+            请在安静环境下录制，语速自然
+          </div>
+        </div>
+      </div>
+
+      <!-- 上传面板 -->
+      <div data-source-panel="upload" style="display:none;">
+        <label class="vc-upload" id="uploadBox" for="audioFile">
+          <div class="vc-upload__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-upload"/></svg></div>
+          <div class="vc-upload__text">点击或拖拽音频文件到此处</div>
+          <div class="vc-upload__hint">支持 MP3 / WAV / M4A，建议 30 秒以上，≤ 20MB</div>
+          <input type="file" id="audioFile" accept="audio/*" style="display:none;" />
+        </label>
+        <div id="filePreview" style="display:none;"></div>
+      </div>
+
+      <!-- 音色名称 -->
+      <div class="zxt-field">
+        <label class="zxt-label">音色名称</label>
+        <input class="zxt-input" id="voiceName" placeholder="如：品牌女声·小雨" maxlength="20" />
+      </div>
+
+      <!-- 性别 -->
+      <div class="zxt-field">
+        <label class="zxt-label">声音性别</label>
+        <div data-chip-group id="genderGroup" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="zxt-chip zxt-chip--active" data-value="male">男生</span>
+          <span class="zxt-chip" data-value="female">女生</span>
+          <span class="zxt-chip" data-value="neutral">中性</span>
+        </div>
+      </div>
+
+      <!-- 适用场景 -->
+      <div class="zxt-field">
+        <label class="zxt-label">适用场景（可多选）</label>
+        <div data-chip-group data-chip-multi="true" id="sceneGroup" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- 模型选择 -->
+      <div class="zxt-field">
+        <label class="zxt-label">克隆模型</label>
+        <div class="vc-model" id="modelGroup"></div>
+      </div>
+
+      <button class="zxt-btn zxt-btn-primary zxt-btn-block zxt-btn-lg" id="submitBtn">
+        <svg class="zxt-icon"><use href="../shared/icons.svg#i-sparkles"/></svg>
+        开始克隆
+      </button>
+    </aside>
+  </div>
+</main>
+
+<!-- 编辑模态 -->
+<div class="zxt-modal-mask" id="editModal">
+  <div class="zxt-modal-panel" style="max-width:460px;">
+    <div class="zxt-modal-header">
+      <div class="zxt-modal-title">编辑音色信息</div>
+      <button class="zxt-modal-close" data-modal-close="editModal">
+        <svg class="zxt-icon"><use href="../shared/icons.svg#i-x"/></svg>
+      </button>
+    </div>
+    <div class="zxt-modal-body">
+      <div class="zxt-field">
+        <label class="zxt-label">音色名称</label>
+        <input class="zxt-input" id="editName" maxlength="20" />
+      </div>
+      <div class="zxt-field">
+        <label class="zxt-label">描述</label>
+        <textarea class="zxt-textarea" id="editDesc" rows="3" maxlength="120" placeholder="描述这个音色的特点与适用场景..."></textarea>
+      </div>
+      <div class="zxt-field" style="margin-bottom:0;">
+        <label class="zxt-label">适用场景</label>
+        <div data-chip-group data-chip-multi="true" id="editSceneGroup" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+    <div class="zxt-modal-footer">
+      <button class="zxt-btn zxt-btn-ghost" data-modal-close="editModal">取消</button>
+      <button class="zxt-btn zxt-btn-primary" id="saveEditBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认 -->
+<div class="zxt-modal-mask" id="deleteModal">
+  <div class="zxt-modal-panel" style="max-width:420px;">
+    <div class="zxt-modal-header">
+      <div class="zxt-modal-title">删除音色</div>
+      <button class="zxt-modal-close" data-modal-close="deleteModal"><svg class="zxt-icon"><use href="../shared/icons.svg#i-x"/></svg></button>
+    </div>
+    <div class="zxt-modal-body">
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(239,100,100,.12);color:var(--zxt-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg class="zxt-icon"><use href="../shared/icons.svg#i-alert"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:600;margin-bottom:6px;" id="delTarget">删除该音色？</div>
+          <div style="font-size:13px;color:var(--zxt-text-muted);">删除后无法恢复，使用该音色生成的视频不受影响。</div>
+        </div>
+      </div>
+    </div>
+    <div class="zxt-modal-footer">
+      <button class="zxt-btn zxt-btn-ghost" data-modal-close="deleteModal">取消</button>
+      <button class="zxt-btn zxt-btn-danger" id="confirmDel">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/mock-data.js"></script>
+<script src="../shared/app.js"></script>
+<script>
+(function () {
+  var VC = window.ZXT_MOCK.voiceClone;
+  var voices = VC.voices.slice();
+  var currentStatus = 'all';
+  var currentKeyword = '';
+  var playingId = null;
+  var editingId = null;
+  var deletingId = null;
+  var selectedModel = VC.targetModels[0].id;
+  var uploadedFile = null;
+
+  var genderCls = { male: 'vc-card__avatar--male', female: 'vc-card__avatar--female', neutral: 'vc-card__avatar--neutral' };
+  var genderLabel = { male: '男生', female: '女生', neutral: '中性' };
+  var genderChar = { male: '男', female: '女', neutral: '中' };
+
+  function statusMeta(s) {
+    var map = {
+      Success: { cls: 'zxt-badge--success', text: VC.statusText.Success },
+      Training: { cls: 'zxt-badge--info', text: VC.statusText.Training },
+      PreTraining: { cls: 'zxt-badge--warning', text: VC.statusText.PreTraining },
+      Fail: { cls: 'zxt-badge--danger', text: VC.statusText.Fail }
+    };
+    return map[s] || map.Success;
+  }
+
+  function renderGrid() {
+    var grid = document.getElementById('voiceGrid');
+    var list = voices.filter(function (v) {
+      if (currentStatus !== 'all' && v.status !== currentStatus) return false;
+      if (currentKeyword) {
+        var kw = currentKeyword.toLowerCase();
+        var hay = (v.name + ' ' + (v.description||'') + ' ' + v.scenes.join(' ')).toLowerCase();
+        if (hay.indexOf(kw) < 0) return false;
+      }
+      return true;
+    });
+    if (!list.length) {
+      grid.innerHTML = '<div class="zxt-empty" style="grid-column:1/-1;"><div class="zxt-empty__icon"><svg class="zxt-icon" style="width:28px;height:28px;"><use href="../shared/icons.svg#i-search"/></svg></div><div>没有找到匹配的音色</div></div>';
+      return;
+    }
+    grid.innerHTML = list.map(function (v) {
+      var sm = statusMeta(v.status);
+      var body = '';
+      if (v.status === 'Success') {
+        var bars = '';
+        for (var i = 0; i < 32; i++) bars += '<span style="height:' + (15 + Math.random()*70) + '%"></span>';
+        body = '<div class="vc-card__wave">' +
+          '<div class="vc-card__bars" data-bars>' + bars + '</div>' +
+          '<button class="vc-card__play' + (playingId === v.id ? ' is-playing' : '') + '" data-play="' + v.id + '">' +
+            '<svg class="zxt-icon" style="width:14px;height:14px;"><use href="../shared/icons.svg#' + (playingId === v.id ? 'i-pause' : 'i-play') + '"/></svg>' +
+          '</button>' +
+        '</div>';
+      } else if (v.status === 'Training' || v.status === 'PreTraining') {
+        var overlayCls = v.status === 'Training' ? 'vc-card__status-overlay--training' : 'vc-card__status-overlay--pre';
+        var icon = v.status === 'Training' ? 'i-loader' : 'i-clock';
+        var spin = v.status === 'Training' ? ' zxt-spin' : '';
+        body = '<div class="vc-card__status-overlay ' + overlayCls + '">' +
+          '<div class="vc-card__status-label"><svg class="zxt-icon' + spin + '"><use href="../shared/icons.svg#' + icon + '"/></svg>' +
+            (v.status === 'Training' ? '训练中 · ' + v.progress + '%' : '排队待训练') + '</div>' +
+          '<div class="zxt-progress zxt-progress--sm"><div class="zxt-progress__bar" style="width:' + (v.progress||0) + '%"></div></div>' +
+        '</div>';
+      } else if (v.status === 'Fail') {
+        body = '<div class="vc-card__status-overlay vc-card__status-overlay--fail">' +
+          '<div class="vc-card__status-label" style="color:var(--zxt-danger);"><svg class="zxt-icon"><use href="../shared/icons.svg#i-x-circle"/></svg>训练失败</div>' +
+          '<div class="vc-card__err">样本音质不达标，请在安静环境下重新录制或上传更清晰的音频。</div>' +
+        '</div>';
+      }
+
+      var scenes = v.scenes.map(function (s) { return '<span class="vc-card__scene">' + s + '</span>'; }).join('');
+      var ops = '';
+      if (v.status === 'Success') {
+        ops = '<button data-edit="' + v.id + '" title="编辑"><svg class="zxt-icon" style="width:15px;height:15px;"><use href="../shared/icons.svg#i-edit"/></svg></button>' +
+              '<button data-del="' + v.id + '" title="删除"><svg class="zxt-icon" style="width:15px;height:15px;"><use href="../shared/icons.svg#i-trash"/></svg></button>';
+      } else if (v.status === 'Fail') {
+        ops = '<button data-retry="' + v.id + '" title="重试" style="color:var(--zxt-info);"><svg class="zxt-icon" style="width:15px;height:15px;"><use href="../shared/icons.svg#i-refresh"/></svg></button>' +
+              '<button data-del="' + v.id + '" title="删除"><svg class="zxt-icon" style="width:15px;height:15px;"><use href="../shared/icons.svg#i-trash"/></svg></button>';
+      }
+      return '<div class="vc-card" data-id="' + v.id + '">' +
+        '<div class="vc-card__head">' +
+          '<div class="vc-card__avatar ' + genderCls[v.gender] + '">' + genderChar[v.gender] + '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div class="vc-card__name">' + v.name + '</div>' +
+            '<div class="vc-card__meta">' + genderLabel[v.gender] + ' · ' + v.createdAt + '</div>' +
+          '</div>' +
+          '<span class="zxt-badge ' + sm.cls + '">' + sm.text + '</span>' +
+        '</div>' +
+        (v.description ? '<div class="vc-card__desc">' + v.description + '</div>' : '<div class="vc-card__desc" style="color:var(--zxt-text-muted);">暂无描述</div>') +
+        '<div class="vc-card__scenes">' + scenes + '</div>' +
+        body +
+        '<div class="vc-card__foot">' +
+          '<span class="vc-card__time">' + (v.targetModel ? (v.targetModel.indexOf('plus')>=0 ? '高质量版' : '基础版') : '') + '</span>' +
+          '<div class="vc-card__ops">' + ops + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    // 绑定播放
+    grid.querySelectorAll('[data-play]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var id = btn.getAttribute('data-play');
+        playingId = playingId === id ? null : id;
+        renderGrid();
+        if (playingId) ZXT.toast.show('正在试听：' + voices.find(function(x){return x.id===id;}).name, 'info');
+      });
+    });
+    grid.querySelectorAll('[data-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) { e.stopPropagation(); openEdit(btn.getAttribute('data-edit')); });
+    });
+    grid.querySelectorAll('[data-del]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) { e.stopPropagation(); askDelete(btn.getAttribute('data-del')); });
+    });
+    grid.querySelectorAll('[data-retry]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var v = voices.find(function(x){return x.id===btn.getAttribute('data-retry');});
+        v.status = 'Training'; v.progress = 5;
+        renderGrid();
+        ZXT.toast.show('已重新加入训练队列', 'success');
+      });
+    });
+  }
+
+  // 场景 chips
+  function renderSceneChips(containerId, selected) {
+    var c = document.getElementById(containerId);
+    c.innerHTML = VC.sceneOptions.map(function (s) {
+      var active = selected && selected.indexOf(s) >= 0 ? ' is-active' : '';
+      return '<span class="zxt-chip' + active + '" data-value="' + s + '">' + s + '</span>';
+    }).join('');
+    ZXT.chipGroup.init(c);
+  }
+
+  // 模型选项
+  function renderModels() {
+    var c = document.getElementById('modelGroup');
+    c.innerHTML = VC.targetModels.map(function (m) {
+      return '<div class="vc-model__opt' + (m.id === selectedModel ? ' is-active' : '') + '" data-model="' + m.id + '">' +
+        '<div class="vc-model__radio"></div>' +
+        '<div>' +
+          '<div class="vc-model__title">' + m.name + ' <span class="zxt-badge zxt-badge--info">' + m.tag + '</span></div>' +
+          '<div class="vc-model__desc">' + m.desc + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    c.querySelectorAll('.vc-model__opt').forEach(function (opt) {
+      opt.addEventListener('click', function () {
+        selectedModel = opt.getAttribute('data-model');
+        renderModels();
+      });
+    });
+  }
+
+  // 来源切换
+  document.querySelectorAll('.vc-source-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.vc-source-tab').forEach(function (t) { t.classList.remove('is-active'); });
+      tab.classList.add('is-active');
+      var src = tab.getAttribute('data-source');
+      document.querySelectorAll('[data-source-panel]').forEach(function (p) {
+        p.style.display = p.getAttribute('data-source-panel') === src ? '' : 'none';
+      });
+    });
+  });
+
+  // 录音
+  var waveform = document.getElementById('waveform');
+  ZXT.waveform.mount(waveform, 28);
+  var recordBox = document.getElementById('recordBox');
+  var recordBtn = document.getElementById('recordBtn');
+  var recordTime = document.getElementById('recordTime');
+  var recordHint = document.getElementById('recordHint');
+  var recording = false, seconds = 0, timer = null, waveTimer = null;
+  recordBtn.addEventListener('click', function () {
+    if (!recording) {
+      recording = true; seconds = 0;
+      recordBox.classList.add('is-recording');
+      recordBtn.querySelector('svg').innerHTML = '<use href="../shared/icons.svg#i-circle-stop"/>';
+      recordHint.textContent = '录音中... 再次点击结束';
+      recordHint.classList.remove('is-ok');
+      timer = setInterval(function () {
+        seconds++;
+        var m = Math.floor(seconds/60), s = seconds%60;
+        recordTime.textContent = (m<10?'0'+m:m)+':'+(s<10?'0'+s:s);
+        if (seconds >= VC.minRecordSeconds) {
+          recordHint.textContent = '已满足最短时长，可结束录音';
+          recordHint.classList.add('is-ok');
+        }
+      }, 1000);
+      waveTimer = setInterval(function () {
+        waveform.querySelectorAll('.vc-waveform__bar').forEach(function (b) {
+          b.style.height = (15 + Math.random()*75) + '%';
+        });
+      }, 110);
+    } else {
+      recording = false;
+      recordBox.classList.remove('is-recording');
+      recordBtn.querySelector('svg').innerHTML = '<use href="../shared/icons.svg#i-mic"/>';
+      clearInterval(timer); clearInterval(waveTimer);
+      if (seconds < VC.minRecordSeconds) {
+        recordHint.textContent = '录音时长不足 30 秒，请重新录制';
+        recordHint.classList.remove('is-ok');
+        ZXT.toast.show('录音时长不足，至少需要 30 秒', 'error');
+      } else {
+        recordHint.textContent = '录音完成，时长 ' + seconds + ' 秒';
+        recordHint.classList.add('is-ok');
+        ZXT.toast.show('录音样本已就绪', 'success');
+      }
+    }
+  });
+
+  // 上传
+  var fileInput = document.getElementById('audioFile');
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) {
+      var f = fileInput.files[0];
+      uploadedFile = { name: f.name, size: f.size };
+      var sizeText = f.size < 1024*1024 ? (f.size/1024).toFixed(1)+' KB' : (f.size/1024/1024).toFixed(1)+' MB';
+      document.getElementById('filePreview').style.display = '';
+      document.getElementById('filePreview').innerHTML =
+        '<div class="vc-upload__file">' +
+          '<div class="vc-upload__file-icon"><svg class="zxt-icon" style="width:18px;height:18px;"><use href="../shared/icons.svg#i-audio-lines"/></svg></div>' +
+          '<div class="vc-upload__file-meta"><div class="vc-upload__file-name">' + f.name + '</div><div class="vc-upload__file-size">' + sizeText + '</div></div>' +
+          '<button class="vc-upload__file-remove" id="removeFile"><svg class="zxt-icon" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-x"/></svg></button>' +
+        '</div>';
+      document.getElementById('removeFile').addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        uploadedFile = null; fileInput.value = '';
+        document.getElementById('filePreview').style.display = 'none';
+        document.getElementById('filePreview').innerHTML = '';
+      });
+      ZXT.toast.show('音频已选择：' + f.name, 'success');
+    }
+  });
+
+  // 筛选
+  document.getElementById('statusFilter').addEventListener('click', function (e) {
+    var chip = e.target.closest('.zxt-chip');
+    if (!chip) return;
+    document.querySelectorAll('#statusFilter .zxt-chip').forEach(function (c) { c.classList.remove('is-active'); });
+    chip.classList.add('is-active');
+    currentStatus = chip.getAttribute('data-value');
+    renderGrid();
+  });
+  document.getElementById('searchInput').addEventListener('input', function (e) {
+    currentKeyword = e.target.value.trim();
+    renderGrid();
+  });
+
+  // 提交克隆
+  document.getElementById('submitBtn').addEventListener('click', function () {
+    var name = document.getElementById('voiceName').value.trim();
+    if (!name) { ZXT.toast.show('请填写音色名称', 'error'); return; }
+    var gender = (document.querySelector('#genderGroup .zxt-chip.is-active') || {}).getAttribute && document.querySelector('#genderGroup .zxt-chip.is-active').getAttribute('data-value');
+    var scenes = ZXT.chipGroup.getSelected(document.getElementById('sceneGroup'));
+    if (!scenes.length) { ZXT.toast.show('请至少选择一个适用场景', 'error'); return; }
+    voices.unshift({
+      id: 'vc-' + Date.now(), name: name, gender: gender, scenes: scenes,
+      status: 'Training', progress: 3, createdAt: new Date().toISOString().slice(0,10),
+      targetModel: selectedModel
+    });
+    // 重置
+    document.getElementById('voiceName').value = '';
+    renderGrid();
+    currentStatus = 'all';
+    document.querySelectorAll('#statusFilter .zxt-chip').forEach(function (c,i) { c.classList.toggle('is-active', i===0); });
+    ZXT.toast.show('音色「' + name + '」已加入训练队列', 'success');
+    // 模拟进度
+    simulateTraining(voices[0].id);
+  });
+
+  function simulateTraining(id) {
+    var v = voices.find(function(x){return x.id===id;});
+    if (!v) return;
+    var iv = setInterval(function () {
+      if (v.status !== 'Training') { clearInterval(iv); return; }
+      v.progress += Math.floor(Math.random()*8)+3;
+      if (v.progress >= 100) {
+        v.progress = 100; v.status = 'Success';
+        v.description = v.description || '新克隆的音色';
+        clearInterval(iv);
+        renderGrid();
+        ZXT.toast.show('音色「' + v.name + '」训练完成！', 'success');
+      } else {
+        renderGrid();
+      }
+    }, 1500);
+  }
+
+  // 编辑
+  function openEdit(id) {
+    var v = voices.find(function(x){return x.id===id;});
+    if (!v) return;
+    editingId = id;
+    document.getElementById('editName').value = v.name;
+    document.getElementById('editDesc').value = v.description || '';
+    renderSceneChips('editSceneGroup', v.scenes);
+    ZXT.modal.open('editModal');
+  }
+  document.getElementById('saveEditBtn').addEventListener('click', function () {
+    var v = voices.find(function(x){return x.id===editingId;});
+    if (!v) return;
+    v.name = document.getElementById('editName').value.trim() || v.name;
+    v.description = document.getElementById('editDesc').value.trim();
+    v.scenes = ZXT.chipGroup.getSelected(document.getElementById('editSceneGroup'));
+    ZXT.modal.close('editModal');
+    renderGrid();
+    ZXT.toast.show('音色信息已更新', 'success');
+  });
+
+  // 删除
+  function askDelete(id) {
+    deletingId = id;
+    var v = voices.find(function(x){return x.id===id;});
+    document.getElementById('delTarget').textContent = '确定删除音色「' + v.name + '」？';
+    ZXT.modal.open('deleteModal');
+  }
+  document.getElementById('confirmDel').addEventListener('click', function () {
+    voices = voices.filter(function(x){return x.id!==deletingId;});
+    ZXT.modal.close('deleteModal');
+    renderGrid();
+    ZXT.toast.show('音色已删除', 'success');
+  });
+
+  // 初始化
+  renderSceneChips('sceneGroup', []);
+  renderModels();
+  renderGrid();
+  ZXT.chipGroup.init(document.getElementById('genderGroup'));
+})();
+</script>
+</body>
+</html>

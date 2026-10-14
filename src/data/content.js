@@ -8,6 +8,9 @@ export const resumeUrl = '/resume/chen-mingzhi-ai-pm-resume.pdf'
 // 浏览器下载简历时的保存文件名
 export const resumeDownloadName = '27届-陈明智-AI产品经理.pdf'
 
+// 智小天高保真原型（静态站点，随 public 目录发布，新标签页打开）
+export const zhixiaotianPrototypeUrl = '/prototypes/zhixiaotian/index.html'
+
 export const siteContent = {
   name: '陈明智',
   nameEn: 'Chen Mingzhi',
@@ -99,7 +102,9 @@ export const siteContent = {
         '搭建效率 / 质量 / 体验三维度、共 5 项核心指标的效果评估体系，联动研发完成 2 轮迭代，上线 SSML 发音规则库解决营销文案错音问题。',
         '跟进客户试点落地，跟踪 50+ 个混剪项目数据，收集 20+ 条用户反馈、推动 10+ 项优化闭环。',
       ],
-      relatedProjectSlug: 'zhixiaotian',
+      relatedProjectUrl: zhixiaotianPrototypeUrl,
+      relatedProjectLabel: '查看高保真原型',
+      relatedProjectExternal: true,
     },
   ],
 
@@ -114,6 +119,9 @@ export const siteContent = {
       role: 'AI 产品经理（0-1 主导）',
       period: '2026.05 – 2026.08',
       cover: '/images/projects/zhixiaotian-cover.svg',
+      // 点击卡片直接在新标签页打开高保真原型
+      prototypeUrl: zhixiaotianPrototypeUrl,
+      ctaLabel: '体验高保真原型',
       metrics: [
         {
           value: '58% → 82%',
@@ -131,21 +139,6 @@ export const siteContent = {
           note: '基于 50+ 个混剪项目的产能数据推算。',
         },
       ],
-      sections: {
-        context:
-          '「智小天 AI 智能营销平台」是一款企业级 AIGC 营销 SaaS，服务大型招商联营客户。这类客户需要持续、批量地生产招商宣传、路演传播与企业家 IP 内容，但传统模式高度依赖人工剪辑，产能与质量都难以稳定，招商内容的工业化生产成为核心诉求。',
-        problem:
-          '进入项目后，我发现三个关键问题：一是视频制作流程长、协作角色多，单条宣传视频平均需要约 1 天；二是 AI 生成配音在营销专有名词上频繁错音，视频一次通过率仅 58%，大量返工；三是各部门需求分散，缺少统一的 MVP 边界与衡量标准，难以判断功能优先级。',
-        users:
-          '我访谈了 3 类内容制作部门的核心角色，并据此拆解出三大高频场景：招商宣传（标准化、批量产出）、路演传播（强调信息密度与节奏）、企业家 IP（强调人设与口语化）。不同场景对脚本、素材与成片风格的诉求差异明显。',
-        solution:
-          '我先输出 30+ 条需求清单与场景流程图，收敛出 MVP 边界与核心指标；随后独立设计视频混剪模块的六步用户流程：项目创建 → 视频设置 → 脚本生成 → 素材上传 → 视频生成 → 视频预览，并产出 PRD 与 10+ 页高保真原型。针对错音问题，我推动研发上线 SSML 发音规则库，把营销专有名词的读法前置配置，而非让用户反复修改文案。权衡上，MVP 阶段优先保证「成片可用、流程闭环」，暂不追求复杂的自定义剪辑能力，避免 0-1 阶段范围失控。',
-        flowImage: '/images/projects/zhixiaotian-flow.svg',
-        outcome:
-          '经过 2 轮迭代，视频一次通过率从 58% 提升至 82%；单条宣传视频剪辑周期从 1 天缩短至 20 分钟，人均日产能提升约 10 倍。试点期间我跟踪了 50+ 个混剪项目，收集 20+ 条用户反馈并推动 10+ 项优化闭环。',
-        reflection:
-          '这次 0-1 让我体会最深的是：B 端 AI 产品要先收敛场景、再堆叠能力。如果一开始就追求「全能剪辑」，反而无法证明价值；而当我用一次通过率、剪辑周期、人均产能这些可衡量指标牵引方案与迭代时，研发、客户与我之间才有了共同语言。',
-      },
     },
     {
       slug: 'snack-agent',

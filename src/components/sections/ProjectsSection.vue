@@ -1,6 +1,23 @@
 <script setup>
 import { siteContent } from '../../data/content.js'
 import SectionWrapper from '../SectionWrapper.vue'
+
+// 卡片跳转目标：有高保真原型的项目新标签页打开原型，其余进站内案例详情
+function cardTarget(project) {
+  return project.prototypeUrl
+    ? {
+        is: 'a',
+        attrs: {
+          href: project.prototypeUrl,
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
+      }
+    : {
+        is: 'router-link',
+        attrs: { to: `/project/${project.slug}` },
+      }
+}
 </script>
 
 <template>
@@ -9,16 +26,17 @@ import SectionWrapper from '../SectionWrapper.vue'
     <div class="mb-12 md:mb-16">
       <h2 class="text-3xl font-bold text-ink sm:text-4xl md:text-5xl">作品案例</h2>
       <p class="mt-3 text-base text-muted md:text-lg">
-        每个案例均按「背景 → 问题 → 用户 → 方案 → 结果 → 复盘」完整呈现，指标附统计口径。
+        「智小天」提供可点击的高保真原型，零食客服 Agent 按「背景 → 问题 → 用户 → 方案 → 结果 → 复盘」完整呈现，指标附统计口径。
       </p>
     </div>
 
     <!-- 案例卡片 -->
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
-      <router-link
+      <component
+        :is="cardTarget(project).is"
         v-for="project in siteContent.projects"
         :key="project.slug"
-        :to="`/project/${project.slug}`"
+        v-bind="cardTarget(project).attrs"
         class="group flex flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-soft-lg"
       >
         <!-- 封面 -->
@@ -56,12 +74,31 @@ import SectionWrapper from '../SectionWrapper.vue'
             </div>
           </div>
 
-          <!-- 查看案例 -->
+          <!-- 查看案例 / 体验原型 -->
           <span
             class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition-colors group-hover:text-brand-700"
           >
-            查看完整案例
+            {{ project.ctaLabel || '查看完整案例' }}
+            <!-- 外链图标（原型） -->
             <svg
+              v-if="project.prototypeUrl"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+            >
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            <!-- 站内箭头图标 -->
+            <svg
+              v-else
               width="16"
               height="16"
               viewBox="0 0 24 24"
@@ -77,7 +114,7 @@ import SectionWrapper from '../SectionWrapper.vue'
             </svg>
           </span>
         </div>
-      </router-link>
+      </component>
     </div>
   </SectionWrapper>
 </template>

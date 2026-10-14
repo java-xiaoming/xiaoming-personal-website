@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>数字人播报 · 智小天</title>
+<link rel="stylesheet" href="../shared/styles.css" />
+<style>
+  .dhs-layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+
+  /* 音色卡片 */
+  .dhs-voices { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .dhs-voice {
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border);
+    border-radius: 14px; padding: 16px; cursor: pointer; transition: all .18s; position: relative;
+  }
+  .dhs-voice:hover { border-color: var(--zxt-border-strong); }
+  .dhs-voice.is-active { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); box-shadow: 0 0 0 3px rgba(36,186,180,.12); }
+  .dhs-voice__head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .dhs-voice__avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #041817; font-size: 15px; }
+  .dhs-voice__avatar--female { background: linear-gradient(135deg,#ff9eb5,#ff6b9d); }
+  .dhs-voice__avatar--male { background: linear-gradient(135deg,#6bb8ff,#28b1e8); }
+  .dhs-voice__name { font-weight: 600; font-size: 14px; }
+  .dhs-voice__style { font-size: 12px; color: var(--zxt-text-muted); }
+  .dhs-voice__tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .dhs-voice__tag { font-size: 11px; padding: 2px 8px; border-radius: 5px; background: var(--zxt-surface-soft); color: var(--zxt-text-muted); }
+  .dhs-voice__play { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--zxt-info); }
+  .dhs-voice__play svg { width: 14px; height: 14px; }
+  .dhs-voice__check { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: var(--zxt-gradient-brand); color: #041817; display: none; align-items: center; justify-content: center; }
+  .dhs-voice.is-active .dhs-voice__check { display: flex; }
+
+  /* 脚本区 */
+  .dhs-script-wrap { position: relative; }
+  .dhs-textarea { min-height: 220px; font-size: 15px; line-height: 1.8; }
+  .dhs-script-toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12px; color: var(--zxt-text-muted); }
+  .dhs-script-toolbar .zxt-btn { height: 30px; font-size: 12px; padding: 0 10px; }
+  .dhs-script-actions { display: flex; gap: 8px; }
+
+  /* 智能体选择 */
+  .dhs-agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .dhs-agent {
+    padding: 12px 14px; background: var(--zxt-surface); border: 1px solid var(--zxt-border);
+    border-radius: 12px; cursor: pointer; transition: all .18s;
+  }
+  .dhs-agent:hover { border-color: var(--zxt-border-strong); background: var(--zxt-surface-soft); }
+  .dhs-agent.is-active { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); }
+  .dhs-agent__name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .dhs-agent__desc { font-size: 11px; color: var(--zxt-text-muted); }
+
+  /* 数字人选择 */
+  .dhs-avatars { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+  .dhs-avatar-card {
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border);
+    border-radius: 14px; overflow: hidden; cursor: pointer; transition: all .18s; position: relative;
+  }
+  .dhs-avatar-card:hover { border-color: var(--zxt-border-strong); }
+  .dhs-avatar-card.is-active { border-color: var(--zxt-accent); box-shadow: 0 0 0 3px rgba(36,186,180,.12); }
+  .dhs-avatar-card__cover { aspect-ratio: 3/4; background: var(--zxt-surface-soft); position: relative; }
+  .dhs-avatar-card__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .dhs-avatar-card__check { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: var(--zxt-gradient-brand); color: #041817; display: none; align-items: center; justify-content: center; }
+  .dhs-avatar-card.is-active .dhs-avatar-card__check { display: flex; }
+  .dhs-avatar-card__body { padding: 10px 12px; }
+  .dhs-avatar-card__name { font-size: 14px; font-weight: 600; }
+  .dhs-avatar-card__role { font-size: 12px; color: var(--zxt-text-muted); }
+
+  /* 右侧设置/预览面板 */
+  .dhs-side {
+    position: sticky; top: calc(var(--zxt-topbar-h) + 16px);
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border);
+    border-radius: 20px; overflow: hidden;
+  }
+  .dhs-preview { aspect-ratio: 9/16; max-height: 420px; background: linear-gradient(135deg,#1a2e2c,#0f2220); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .dhs-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .dhs-preview__empty { text-align: center; color: var(--zxt-text-muted); padding: 20px; }
+  .dhs-preview__empty svg { width: 40px; height: 40px; margin-bottom: 10px; opacity: .6; }
+  .dhs-preview__badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px); display: flex; align-items: center; gap: 4px; }
+  .dhs-preview__badge .rec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--zxt-danger); animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .dhs-side__body { padding: 18px; }
+  .dhs-side__row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--zxt-border); }
+  .dhs-side__row:last-child { border-bottom: none; }
+  .dhs-side__row span:first-child { color: var(--zxt-text-muted); }
+  .dhs-side__foot { padding: 16px 18px; border-top: 1px solid var(--zxt-border); }
+  .dhs-side__title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--zxt-text-secondary); }
+
+  /* 生成中 */
+  .dhs-gen { text-align: center; padding: 20px 0; }
+  .dhs-gen__preview { width: 240px; aspect-ratio: 9/16; margin: 0 auto 28px; border-radius: 16px; overflow: hidden; position: relative; background: #000; }
+  .dhs-gen__preview img { width: 100%; height: 100%; object-fit: cover; opacity: .8; }
+  .dhs-gen__preview::after { content:''; position:absolute; inset:0; background: linear-gradient(to top, rgba(0,0,0,.6), transparent 50%); }
+  .dhs-gen__scan { position: absolute; left: 0; right: 0; height: 3px; background: var(--zxt-gradient-brand); box-shadow: 0 0 20px var(--zxt-info); animation: scan 2s ease-in-out infinite; z-index: 2; }
+  @keyframes scan { 0%{ top: 0; } 50%{ top: calc(100% - 3px); } 100%{ top: 0; } }
+  .dhs-gen__pct { font-size: 36px; font-weight: 700; background: var(--zxt-gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 6px; }
+  .dhs-gen__status { font-size: 15px; color: var(--zxt-text-secondary); margin-bottom: 24px; }
+  .dhs-gen__tasks { max-width: 420px; margin: 0 auto; text-align: left; }
+
+  /* 完成 */
+  .dhs-done { text-align: center; }
+  .dhs-done__video { width: 280px; aspect-ratio: 9/16; margin: 0 auto 24px; border-radius: 16px; overflow: hidden; position: relative; background: #000; }
+  .dhs-done__video img { width: 100%; height: 100%; object-fit: cover; }
+  .dhs-done__play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.25); }
+  .dhs-done__play-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,.92); color: #041817; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 28px rgba(0,0,0,.4); }
+  .dhs-done__actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+
+  .dhs-footbar { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--zxt-border); }
+  .dhs-step-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .dhs-step-desc { color: var(--zxt-text-muted); margin-bottom: 22px; font-size: 13px; }
+  .dhs-hidden { display: none !important; }
+
+  @media (max-width: 980px) { .dhs-layout { grid-template-columns: 1fr; } .dhs-side { position: static; } }
+</style>
+</head>
+<body class="with-main-sidebar">
+
+<!-- 主侧栏 -->
+<aside class="main-sidebar">
+  <a href="../index.html" class="main-sidebar__logo" title="返回原型首页">智</a>
+  <nav class="main-sidebar__nav">
+    <a href="digital-human-list.html" class="main-sidebar__item is-active" title="数字人">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-user-round"/></svg>
+    </a>
+    <a href="../voice-clone/voice-clone.html" class="main-sidebar__item" title="音色克隆">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-audio-lines"/></svg>
+    </a>
+    <a href="../video-mixer/video-mixer.html" class="main-sidebar__item" title="视频混剪">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-scissors"/></svg>
+    </a>
+  </nav>
+  <div class="main-sidebar__user">Z</div>
+</aside>
+
+<!-- 顶栏 -->
+<header class="zxt-topbar">
+  <a href="digital-human-list.html" class="zxt-topbar-back" title="返回">
+    <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg>
+  </a>
+  <div class="zxt-topbar-title">数字人播报</div>
+  <div class="zxt-topbar-sub">输入脚本文案，一键生成数字人口播视频</div>
+  <div class="zxt-topbar__spacer"></div>
+</header>
+
+<main style="padding-bottom: 48px;">
+  <div style="max-width:1180px;margin:0 auto;">
+
+    <!-- 步骤器 -->
+    <div class="zxt-stepper" id="stepper"></div>
+
+    <div class="dhs-layout">
+      <!-- 左：主内容 -->
+      <div>
+        <!-- Step 0: 选音色 -->
+        <section data-step="0">
+          <div class="dhs-step-title">选择播报音色</div>
+          <div class="dhs-step-desc">选择一个系统音色或你的克隆音色作为数字人声音</div>
+          <div class="dhs-voices" id="voiceList"></div>
+        </section>
+
+        <!-- Step 1: 写脚本 -->
+        <section data-step="1" class="dhs-hidden">
+          <div class="dhs-step-title">撰写播报脚本</div>
+          <div class="dhs-step-desc">直接输入文案，或选择智能体辅助生成，支持 100-2000 字</div>
+
+          <div class="dhs-agents" id="agentList"></div>
+
+          <div class="dhs-script-wrap">
+            <textarea class="zxt-textarea dhs-textarea" id="scriptInput" data-maxlength="2000" placeholder="输入或粘贴播报文案，数字人将按此内容进行口播..."></textarea>
+            <div class="dhs-script-toolbar">
+              <span>预计时长 <b id="estDuration" style="color:var(--zxt-info);">00:00</b></span>
+              <div class="dhs-script-actions">
+                <button class="zxt-btn zxt-btn-ghost zxt-btn-sm" id="aiPolish">
+                  <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-wand"/></svg> AI 润色
+                </button>
+                <button class="zxt-btn zxt-btn-ghost zxt-btn-sm" id="clearScript">
+                  <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-trash"/></svg> 清空
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 2: 选数字人 -->
+        <section data-step="2" class="dhs-hidden">
+          <div class="dhs-step-title">选择数字人形象</div>
+          <div class="dhs-step-desc">选择将用于播报的数字人形象</div>
+          <div class="dhs-avatars" id="avatarList"></div>
+        </section>
+
+        <!-- Step 3: 确认 -->
+        <section data-step="3" class="dhs-hidden">
+          <div class="dhs-step-title">确认生成信息</div>
+          <div class="dhs-step-desc">请确认以下配置，无误后点击"开始生成"</div>
+          <div class="zxt-panel">
+            <div class="dhs-side__row"><span>播报音色</span><span id="cfVoice">--</span></div>
+            <div class="dhs-side__row"><span>数字人</span><span id="cfAvatar">--</span></div>
+            <div class="dhs-side__row"><span>脚本文本</span><span id="cfScript">0 字</span></div>
+            <div class="dhs-side__row"><span>预计时长</span><span id="cfDuration">00:00</span></div>
+            <div class="dhs-side__row"><span>视频比例</span><span>竖版 9:16 · 1080P</span></div>
+            <div style="margin-top:18px;display:flex;flex-direction:column;gap:12px;">
+              <label class="zxt-flex zxt-items-center zxt-gap-12" style="cursor:pointer;">
+                <span class="zxt-switch"><input type="checkbox" checked /><span class="zxt-switch__slider"></span></span>
+                <span style="font-size:13px;">添加字幕</span>
+              </label>
+              <label class="zxt-flex zxt-items-center zxt-gap-12" style="cursor:pointer;">
+                <span class="zxt-switch"><input type="checkbox" /><span class="zxt-switch__slider"></span></span>
+                <span style="font-size:13px;">智能去除口头禅与停顿</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 4: 生成中 -->
+        <section data-step="4" class="dhs-hidden">
+          <div class="dhs-gen">
+            <div class="dhs-gen__preview">
+              <div class="dhs-gen__scan"></div>
+              <img id="genImg" src="" alt="" />
+            </div>
+            <div class="dhs-gen__pct" id="genPct">0%</div>
+            <div class="dhs-gen__status" id="genStatus">文本语义分析中...</div>
+            <div class="dhs-gen__tasks" id="genTasks"></div>
+          </div>
+        </section>
+
+        <!-- Step 5: 完成 -->
+        <section data-step="5" class="dhs-hidden">
+          <div class="dhs-done">
+            <div class="dhs-done__check" style="width:72px;height:72px;border-radius:50%;margin:0 auto 20px;background:var(--zxt-gradient-brand);display:flex;align-items:center;justify-content:center;box-shadow:0 16px 40px rgba(36,186,180,.4);">
+              <svg class="zxt-icon" style="width:32px;height:32px;color:#041817;"><use href="../shared/icons.svg#i-check"/></svg>
+            </div>
+            <div class="dhs-step-title" style="text-align:center;">视频生成成功！</div>
+            <div class="dhs-step-desc" style="text-align:center;">数字人播报视频已生成，可预览或下载</div>
+            <div class="dhs-done__video">
+              <img id="doneImg" src="" alt="" />
+              <div class="dhs-done__play">
+                <div class="dhs-done__play-btn">
+                  <svg class="zxt-icon" style="width:24px;height:24px;"><use href="../shared/icons.svg#i-play"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="dhs-done__actions">
+              <a href="digital-human-list.html" class="zxt-btn zxt-btn-ghost zxt-btn-lg">
+                <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-folder"/></svg> 返回列表
+              </a>
+              <button class="zxt-btn zxt-btn-primary zxt-btn-lg" onclick="ZXT.toast.show('演示原型，下载功能未接入','info')">
+                <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-download"/></svg> 下载视频
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 底部导航 -->
+        <div class="dhs-footbar" id="footbar">
+          <button class="zxt-btn zxt-btn-ghost" id="prevBtn">
+            <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg> 上一步
+          </button>
+          <button class="zxt-btn zxt-btn-primary zxt-btn-lg" id="nextBtn">
+            下一步 <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-chevron-right"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 右：实时预览/设置 -->
+      <aside class="dhs-side" id="sidePanel">
+        <div class="dhs-preview" id="previewBox">
+          <div class="dhs-preview__empty" id="previewEmpty">
+            <svg class="zxt-icon"><use href="../shared/icons.svg#i-user-round"/></svg>
+            <div style="font-size:13px;">选择数字人后在此预览</div>
+          </div>
+        </div>
+        <div class="dhs-side__body">
+          <div class="dhs-side__title">当前配置</div>
+          <div class="dhs-side__row"><span>音色</span><span id="sumVoice" class="zxt-text-muted">未选择</span></div>
+          <div class="dhs-side__row"><span>数字人</span><span id="sumAvatar" class="zxt-text-muted">未选择</span></div>
+          <div class="dhs-side__row"><span>脚本字数</span><span id="sumScript" class="zxt-text-muted">0 字</span></div>
+          <div class="dhs-side__row"><span>预计时长</span><span id="sumDuration">00:00</span></div>
+        </div>
+        <div class="dhs-side__foot">
+          <div style="font-size:12px;color:var(--zxt-text-muted);display:flex;align-items:center;gap:6px;">
+            <svg class="zxt-icon" style="width:14px;height:14px;"><use href="../shared/icons.svg#i-clock"/></svg>
+            生成约需 2-5 分钟
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+</main>
+
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <linearGradient id="zxtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#24bab4"/><stop offset="100%" stop-color="#28b1e8"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<script src="../shared/mock-data.js"></script>
+<script src="../shared/app.js"></script>
+<script>
+(function () {
+  var M = window.ZXT_MOCK.digitalHuman;
+  var state = { step: 0, voiceId: null, avatarId: null, script: '', agentId: null };
+  var readyAvatars = M.avatars.filter(function (a) { return a.status === 'ready'; });
+
+  function renderStepper() {
+    document.getElementById('stepper').innerHTML = M.speakSteps.map(function (label, i) {
+      var cls = i < state.step ? 'is-done' : (i === state.step ? 'is-active' : '');
+      var icon = i < state.step ? '<svg class="zxt-icon" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-check"/></svg>' : (i+1);
+      return '<div class="zxt-stepper__item ' + cls + '"><div class="zxt-stepper__circle">' + icon + '</div><div class="zxt-stepper__label">' + label + '</div></div>';
+    }).join('');
+  }
+
+  // 音色列表（系统音色 + 克隆音色）
+  var cloneVoices = window.ZXT_MOCK.voiceClone.voices.filter(function(v){return v.status==='Success';});
+  var allVoices = M.systemVoices.map(function(v){return Object.assign({source:'system'}, v);})
+    .concat(cloneVoices.map(function(v){return Object.assign({source:'clone', style:v.description, tags:v.scenes, gender:v.gender}, v);}));
+
+  function renderVoices() {
+    document.getElementById('voiceList').innerHTML = allVoices.map(function (v) {
+      var genderCls = v.gender === 'female' ? 'dhs-voice__avatar--female' : (v.gender === 'male' ? 'dhs-voice__avatar--male' : '');
+      var char = v.gender === 'female' ? '女' : (v.gender === 'male' ? '男' : '中');
+      var tags = (v.tags||[]).slice(0,2).map(function(t){return '<span class="dhs-voice__tag">'+t+'</span>';}).join('');
+      var sourceTag = v.source === 'clone' ? '<span class="dhs-voice__tag" style="background:rgba(124,92,255,.15);color:#a78bff;">克隆</span>' : '';
+      return '<div class="dhs-voice' + (state.voiceId === v.id ? ' is-active' : '') + '" data-id="' + v.id + '">' +
+        '<div class="dhs-voice__check"><svg class="zxt-icon" style="width:12px;height:12px;"><use href="../shared/icons.svg#i-check"/></svg></div>' +
+        '<div class="dhs-voice__head">' +
+          '<div class="dhs-voice__avatar ' + genderCls + '">' + char + '</div>' +
+          '<div style="flex:1;min-width:0;"><div class="dhs-voice__name">' + v.name + '</div><div class="dhs-voice__style">' + (v.style || '') + '</div></div>' +
+        '</div>' +
+        '<div class="dhs-voice__tags">' + sourceTag + tags + '</div>' +
+        '<div class="dhs-voice__play"><svg class="zxt-icon"><use href="../shared/icons.svg#i-play"/></svg> 试听 10s</div>' +
+      '</div>';
+    }).join('');
+    document.querySelectorAll('.dhs-voice').forEach(function (el) {
+      el.addEventListener('click', function () {
+        state.voiceId = el.getAttribute('data-id');
+        renderVoices(); updateSummary();
+      });
+    });
+  }
+
+  function renderAgents() {
+    document.getElementById('agentList').innerHTML = M.scriptAgents.map(function (a) {
+      return '<div class="dhs-agent' + (state.agentId === a.id ? ' is-active' : '') + '" data-id="' + a.id + '" title="' + a.intro + '">' +
+        '<div class="dhs-agent__name">' + a.name + '</div>' +
+        '<div class="dhs-agent__desc">' + a.shortDesc + '</div>' +
+      '</div>';
+    }).join('');
+    document.querySelectorAll('.dhs-agent').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var id = el.getAttribute('data-id');
+        state.agentId = state.agentId === id ? null : id;
+        var agent = M.scriptAgents.find(function(x){return x.id===id;});
+        if (agent && state.agentId) {
+          document.getElementById('scriptInput').placeholder = agent.placeholder;
+          ZXT.toast.show('已选择「' + agent.name + '」，可在下方输入需求', 'info');
+        }
+        renderAgents();
+      });
+    });
+  }
+
+  function renderAvatars() {
+    document.getElementById('avatarList').innerHTML = readyAvatars.map(function (a) {
+      return '<div class="dhs-avatar-card' + (state.avatarId === a.id ? ' is-active' : '') + '" data-id="' + a.id + '">' +
+        '<div class="dhs-avatar-card__check"><svg class="zxt-icon" style="width:14px;height:14px;"><use href="../shared/icons.svg#i-check"/></svg></div>' +
+        '<div class="dhs-avatar-card__cover"><img src="' + a.photoUrl + '" alt="' + a.name + '"/></div>' +
+        '<div class="dhs-avatar-card__body"><div class="dhs-avatar-card__name">' + a.name + '</div><div class="dhs-avatar-card__role">' + a.role + '</div></div>' +
+      '</div>';
+    }).join('');
+    document.querySelectorAll('.dhs-avatar-card').forEach(function (el) {
+      el.addEventListener('click', function () {
+        state.avatarId = el.getAttribute('data-id');
+        renderAvatars(); updatePreview(); updateSummary();
+      });
+    });
+  }
+
+  function getVoice() { return allVoices.find(function(v){return v.id===state.voiceId;}); }
+  function getAvatar() { return readyAvatars.find(function(a){return a.id===state.avatarId;}); }
+
+  function updatePreview() {
+    var box = document.getElementById('previewBox');
+    var a = getAvatar();
+    if (a) {
+      box.innerHTML = '<img src="' + a.photoUrl + '" alt=""/>' +
+        '<div class="dhs-preview__badge"><span class="rec-dot"></span> 预览</div>';
+    } else {
+      box.innerHTML = '<div class="dhs-preview__empty"><svg class="zxt-icon"><use href="../shared/icons.svg#i-user-round"/></svg><div style="font-size:13px;">选择数字人后在此预览</div></div>';
+    }
+  }
+
+  function estimateDuration(text) {
+    var sec = Math.max(0, Math.round(text.length / 4)); // 约 4 字/秒
+    var m = Math.floor(sec/60), s = sec%60;
+    return (m<10?'0'+m:m)+':'+(s<10?'0'+s:s);
+  }
+
+  function updateSummary() {
+    var v = getVoice(), a = getAvatar();
+    document.getElementById('sumVoice').textContent = v ? v.name : '未选择';
+    document.getElementById('sumVoice').className = v ? '' : 'zxt-text-muted';
+    document.getElementById('sumAvatar').textContent = a ? a.name : '未选择';
+    document.getElementById('sumAvatar').className = a ? '' : 'zxt-text-muted';
+    var len = state.script.length;
+    document.getElementById('sumScript').textContent = len + ' 字';
+    var dur = estimateDuration(state.script);
+    document.getElementById('sumDuration').textContent = dur;
+    document.getElementById('estDuration').textContent = dur;
+  }
+
+  function showStep(n) {
+    state.step = n;
+    document.querySelectorAll('[data-step]').forEach(function (s) {
+      s.classList.toggle('dhs-hidden', parseInt(s.getAttribute('data-step'),10) !== n);
+    });
+    renderStepper();
+    var foot = document.getElementById('footbar');
+    var prev = document.getElementById('prevBtn');
+    var next = document.getElementById('nextBtn');
+    prev.style.visibility = (n === 0 || n >= 4) ? 'hidden' : 'visible';
+    if (n === 4) { foot.style.display = 'none'; startGenerating(); }
+    else foot.style.display = '';
+    if (n === 5) { foot.style.display = 'none'; document.getElementById('sidePanel').style.display = 'none'; }
+    else document.getElementById('sidePanel').style.display = '';
+    if (n === 0) { next.textContent = '下一步'; next.disabled = false; }
+    if (n === 3) { next.innerHTML = '<svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-sparkles"/></svg> 开始生成'; next.disabled = false; }
+    else if (n < 3) { next.innerHTML = '下一步 <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-chevron-right"/></svg>'; }
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function validateStep(n) {
+    if (n === 0 && !state.voiceId) { ZXT.toast.show('请先选择一个音色', 'error'); return false; }
+    if (n === 1) {
+      state.script = document.getElementById('scriptInput').value.trim();
+      if (state.script.length < 20) { ZXT.toast.show('脚本至少需要 20 个字', 'error'); return false; }
+    }
+    if (n === 2 && !state.avatarId) { ZXT.toast.show('请选择一个数字人形象', 'error'); return false; }
+    if (n === 3) {
+      var v = getVoice(), a = getAvatar();
+      document.getElementById('cfVoice').textContent = v.name;
+      document.getElementById('cfAvatar').textContent = a.name + ' · ' + a.role;
+      document.getElementById('cfScript').textContent = state.script.length + ' 字';
+      document.getElementById('cfDuration').textContent = estimateDuration(state.script);
+    }
+    return true;
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function () {
+    if (state.step < 3) {
+      if (state.step === 1) state.script = document.getElementById('scriptInput').value.trim();
+      if (!validateStep(state.step)) return;
+      updateSummary();
+      showStep(state.step + 1);
+    } else if (state.step === 3) {
+      if (!validateStep(3)) return;
+      showStep(4);
+    }
+  });
+  document.getElementById('prevBtn').addEventListener('click', function () {
+    if (state.step > 0) showStep(state.step - 1);
+  });
+
+  // 脚本输入
+  document.getElementById('scriptInput').addEventListener('input', function (e) {
+    state.script = e.target.value;
+    updateSummary();
+  });
+  document.getElementById('clearScript').addEventListener('click', function () {
+    document.getElementById('scriptInput').value = '';
+    state.script = ''; updateSummary();
+  });
+  document.getElementById('aiPolish').addEventListener('click', function () {
+    var val = document.getElementById('scriptInput').value.trim();
+    if (!val) { ZXT.toast.show('请先输入需要润色的文案', 'error'); return; }
+    ZXT.toast.show('AI 润色中...', 'info');
+    setTimeout(function () {
+      var polished = val.replace(/。/g, '，').replace(/，$/,'') + '。感兴趣的话，记得点赞关注哦！';
+      document.getElementById('scriptInput').value = polished;
+      state.script = polished; updateSummary();
+      ZXT.toast.show('润色完成，已优化表达并增加引导语', 'success');
+    }, 1200);
+  });
+
+  // 生成动画
+  function startGenerating() {
+    var a = getAvatar();
+    document.getElementById('genImg').src = a.photoUrl;
+    var pct = document.getElementById('genPct');
+    var statusEl = document.getElementById('genStatus');
+    var tasksEl = document.getElementById('genTasks');
+    var progress = 0;
+
+    function renderTasks() {
+      tasksEl.innerHTML = M.speakTasks.map(function (t, i) {
+        var st = 'pending';
+        if (progress >= t.marker) st = 'done';
+        else if (i === 0 || progress >= M.speakTasks[i-1].marker) st = 'active';
+        var icon = st === 'done' ? '<svg class="zxt-icon" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-check"/></svg>'
+                 : st === 'active' ? '<svg class="zxt-icon zxt-spin" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-loader"/></svg>'
+                 : '<svg class="zxt-icon" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-clock"/></svg>';
+        return '<div class="dhc-task dhc-task--' + st + '" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--zxt-border);">' +
+          '<div class="dhc-task__icon" style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + icon + '</div>' +
+          '<div style="flex:1;font-size:13px;" class="' + (st==='pending'?'zxt-text-muted':'') + '">' + t.label + '</div>' +
+          '<div class="zxt-text-xs zxt-text-muted">' + (st==='done'?'完成':(st==='active'?progress+'%':'等待')) + '</div>' +
+        '</div>';
+      }).join('');
+    }
+    renderTasks();
+    clearInterval(window.__dhsGen);
+    window.__dhsGen = setInterval(function () {
+      progress += Math.floor(Math.random()*5)+3;
+      if (progress >= 100) {
+        progress = 100; clearInterval(window.__dhsGen);
+        pct.textContent = '100%'; statusEl.textContent = '生成完成！';
+        renderTasks();
+        setTimeout(function () {
+          document.getElementById('doneImg').src = a.photoUrl;
+          showStep(5);
+        }, 700);
+        return;
+      }
+      pct.textContent = progress + '%';
+      var cur = M.speakTasks.find(function(t){return progress < t.marker;});
+      if (cur) statusEl.textContent = cur.label + '...';
+      renderTasks();
+    }, 420);
+  }
+
+  // 初始化
+  renderStepper();
+  renderVoices();
+  renderAgents();
+  renderAvatars();
+  updateSummary();
+  showStep(0);
+})();
+</script>
+</body>
+</html>

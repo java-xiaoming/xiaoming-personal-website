@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>创建数字人 · 智小天</title>
+<link rel="stylesheet" href="../shared/styles.css" />
+<style>
+  .dhc-wrap { max-width: 960px; margin: 0 auto; }
+
+  /* 规则卡片 */
+  .dhc-rules { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 24px; }
+  .dhc-rule {
+    display: flex; gap: 14px; padding: 18px;
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 14px;
+  }
+  .dhc-rule__icon { width: 40px; height: 40px; border-radius: 10px; background: var(--zxt-accent-soft); color: var(--zxt-info); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dhc-rule__icon svg { width: 20px; height: 20px; }
+  .dhc-rule__title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .dhc-rule__desc { font-size: 12px; color: var(--zxt-text-muted); line-height: 1.6; }
+
+  .dhc-agree {
+    display: flex; align-items: center; gap: 10px; padding: 16px 18px;
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 12px;
+    margin-bottom: 24px; cursor: pointer;
+  }
+  .dhc-checkbox { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--zxt-border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .18s; }
+  .dhc-agree.is-checked .dhc-checkbox { background: var(--zxt-gradient-brand); border-color: transparent; }
+  .dhc-agree.is-checked .dhc-checkbox::after { content: ''; width: 10px; height: 6px; border-left: 2px solid #041817; border-bottom: 2px solid #041817; transform: rotate(-45deg) translate(1px,-1px); }
+  .dhc-agree__text { font-size: 13px; color: var(--zxt-text-secondary); }
+  .dhc-agree__text a { color: var(--zxt-info); }
+
+  /* 上传区 */
+  .dhc-upload {
+    border: 1.5px dashed var(--zxt-border); border-radius: 20px;
+    padding: 48px 24px; text-align: center; cursor: pointer; transition: all .2s;
+    background: var(--zxt-surface);
+  }
+  .dhc-upload:hover { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); }
+  .dhc-upload__icon { width: 72px; height: 72px; border-radius: 50%; background: var(--zxt-gradient-brand-soft); color: var(--zxt-info); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; }
+  .dhc-upload__icon svg { width: 32px; height: 32px; }
+  .dhc-upload__title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .dhc-upload__hint { font-size: 13px; color: var(--zxt-text-muted); margin-bottom: 20px; }
+  .dhc-upload__tips { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-top: 24px; }
+  .dhc-upload__tip { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--zxt-text-muted); }
+  .dhc-upload__tip svg { width: 14px; height: 14px; color: var(--zxt-success); }
+
+  /* 视频已选 */
+  .dhc-video {
+    display: grid; grid-template-columns: 200px 1fr; gap: 20px;
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 16px; padding: 18px;
+  }
+  .dhc-video__poster { aspect-ratio: 9/16; border-radius: 12px; background: linear-gradient(135deg,#1a2e2c,#0f2220); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .dhc-video__poster svg { width: 40px; height: 40px; color: var(--zxt-info); opacity: .8; }
+  .dhc-video__poster::after { content:''; position:absolute; inset:0; background: radial-gradient(circle at 50% 30%, rgba(73,250,249,.15), transparent 60%); }
+  .dhc-video__meta-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--zxt-border); font-size: 13px; }
+  .dhc-video__meta-row span:first-child { color: var(--zxt-text-muted); }
+  .dhc-video__check { display: flex; align-items: center; gap: 8px; color: var(--zxt-success); font-size: 13px; margin-top: 14px; }
+  .dhc-video__check svg { width: 16px; height: 16px; }
+
+  /* 生成中 */
+  .dhc-gen { text-align: center; padding: 20px 0; }
+  .dhc-gen__visual { margin: 0 auto 32px; position: relative; width: 220px; height: 220px; }
+  .dhc-gen__ring { position: absolute; inset: 0; }
+  .dhc-gen__avatar { position: absolute; inset: 20px; border-radius: 50%; overflow: hidden; background: var(--zxt-surface-soft); display: flex; align-items: center; justify-content: center; }
+  .dhc-gen__avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .dhc-gen__pulse { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--zxt-accent); opacity: .4; animation: dhcpulse 2s ease-out infinite; }
+  @keyframes dhcpulse { 0%{ transform:scale(.9); opacity:.6;} 100%{ transform:scale(1.25); opacity:0;} }
+  .dhc-gen__pct { font-size: 48px; font-weight: 700; background: var(--zxt-gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 6px; }
+  .dhc-gen__status { font-size: 16px; color: var(--zxt-text-secondary); margin-bottom: 6px; }
+  .dhc-gen__eta { font-size: 13px; color: var(--zxt-text-muted); margin-bottom: 36px; }
+
+  .dhc-tasks { max-width: 520px; margin: 0 auto; text-align: left; }
+  .dhc-task { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--zxt-border); }
+  .dhc-task:last-child { border-bottom: none; }
+  .dhc-task__icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dhc-task__icon svg { width: 16px; height: 16px; }
+  .dhc-task--done .dhc-task__icon { background: rgba(139,227,169,.15); color: var(--zxt-success); }
+  .dhc-task--active .dhc-task__icon { background: var(--zxt-accent-soft); color: var(--zxt-info); }
+  .dhc-task--active .dhc-task__icon svg { animation: zxt-spin 1.2s linear infinite; }
+  .dhc-task--pending .dhc-task__icon { background: var(--zxt-surface-soft); color: var(--zxt-text-muted); }
+  .dhc-task__label { flex: 1; font-size: 14px; }
+  .dhc-task--pending .dhc-task__label { color: var(--zxt-text-muted); }
+  .dhc-task__pct { font-size: 12px; color: var(--zxt-text-muted); }
+
+  /* 完成 */
+  .dhc-done { text-align: center; padding: 30px 0; }
+  .dhc-done__check {
+    width: 88px; height: 88px; border-radius: 50%; margin: 0 auto 24px;
+    background: var(--zxt-gradient-brand); display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 16px 40px rgba(36,186,180,.4);
+    animation: zxt-pop .4s ease;
+  }
+  .dhc-done__check svg { width: 40px; height: 40px; color: #041817; }
+  .dhc-done__title { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  .dhc-done__desc { color: var(--zxt-text-muted); margin-bottom: 32px; }
+  .dhc-done__preview { max-width: 320px; margin: 0 auto 32px; border-radius: 16px; overflow: hidden; border: 1px solid var(--zxt-border); background: var(--zxt-surface); }
+  .dhc-done__photo { aspect-ratio: 3/4; background: var(--zxt-surface-soft); }
+  .dhc-done__photo img { width: 100%; height: 100%; object-fit: cover; }
+  .dhc-done__info { padding: 16px; text-align: left; }
+  .dhc-done__info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+  .dhc-done__info-row span:first-child { color: var(--zxt-text-muted); }
+  .dhc-done__actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  .dhc-footbar { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--zxt-border); }
+</style>
+</head>
+<body class="with-main-sidebar">
+
+<!-- 主侧栏 -->
+<aside class="main-sidebar">
+  <a href="../index.html" class="main-sidebar__logo" title="返回原型首页">智</a>
+  <nav class="main-sidebar__nav">
+    <a href="digital-human-list.html" class="main-sidebar__item is-active" title="数字人">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-user-round"/></svg>
+    </a>
+    <a href="../voice-clone/voice-clone.html" class="main-sidebar__item" title="音色克隆">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-audio-lines"/></svg>
+    </a>
+    <a href="../video-mixer/video-mixer.html" class="main-sidebar__item" title="视频混剪">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-scissors"/></svg>
+    </a>
+  </nav>
+  <div class="main-sidebar__user">Z</div>
+</aside>
+
+<!-- 顶栏 -->
+<header class="zxt-topbar">
+  <a href="digital-human-list.html" class="zxt-topbar-back" title="返回">
+    <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg>
+  </a>
+  <div class="zxt-topbar-title">创建数字人</div>
+  <div class="zxt-topbar-sub">上传真人视频，训练专属数字人形象</div>
+  <div class="zxt-topbar__spacer"></div>
+</header>
+
+<main style="padding-bottom: 48px;">
+  <div class="dhc-wrap">
+
+    <!-- 步骤器 -->
+    <div class="zxt-stepper" id="stepper"></div>
+
+    <!-- 步骤 1：确认规则 -->
+    <section data-step-panel="0">
+      <h2 class="zxt-page-title">训练前须知</h2>
+      <p class="zxt-page-desc">为保障数字人训练质量，请确认你已满足以下条件</p>
+
+      <div class="dhc-rules">
+        <div class="dhc-rule">
+          <div class="dhc-rule__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-camera"/></svg></div>
+          <div>
+            <div class="dhc-rule__title">视频时长 2-5 分钟</div>
+            <div class="dhc-rule__desc">建议 3 分钟以上正脸视频，素材越长效果越稳定</div>
+          </div>
+        </div>
+        <div class="dhc-rule">
+          <div class="dhc-rule__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-user"/></svg></div>
+          <div>
+            <div class="dhc-rule__title">本人出镜 & 正脸</div>
+            <div class="dhc-rule__desc">需数字人本人出镜，人脸清晰、无遮挡、光线均匀</div>
+          </div>
+        </div>
+        <div class="dhc-rule">
+          <div class="dhc-rule__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-mic"/></svg></div>
+          <div>
+            <div class="dhc-rule__title">环境安静无杂音</div>
+            <div class="dhc-rule__desc">录制环境需安静，人声清晰，避免背景音乐与噪声</div>
+          </div>
+        </div>
+        <div class="dhc-rule">
+          <div class="dhc-rule__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-alert"/></svg></div>
+          <div>
+            <div class="dhc-rule__title">分辨率 ≥ 1080P</div>
+            <div class="dhc-rule__desc">推荐 1080P 及以上，竖版或横版均可，MP4 格式</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dhc-agree" id="agreeBox">
+        <div class="dhc-checkbox"></div>
+        <div class="dhc-agree__text">我已阅读并同意 <a href="#" onclick="event.preventDefault()">《数字人肖像授权协议》</a>，承诺已获得视频中人物的肖像授权</div>
+      </div>
+
+      <div class="dhc-footbar">
+        <a href="digital-human-list.html" class="zxt-btn zxt-btn-ghost">
+          <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg> 返回列表
+        </a>
+        <button class="zxt-btn zxt-btn-primary zxt-btn-lg" id="toStep2" disabled>
+          下一步：上传视频 <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-chevron-right"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 步骤 2：上传视频 -->
+    <section data-step-panel="1" style="display:none;">
+      <h2 class="zxt-page-title">上传训练视频</h2>
+      <p class="zxt-page-desc">上传一段 2-5 分钟的本人出镜视频，系统将自动开始训练</p>
+
+      <div id="uploadEmpty">
+        <label class="dhc-upload" for="videoFile">
+          <div class="dhc-upload__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-upload"/></svg></div>
+          <div class="dhc-upload__title">点击或拖拽视频到此处上传</div>
+          <div class="dhc-upload__hint">支持 MP4 / MOV，时长 2-5 分钟，大小 ≤ 500MB</div>
+          <button class="zxt-btn zxt-btn-primary" type="button" onclick="event.preventDefault();document.getElementById('videoFile').click();">
+            <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-folder"/></svg> 选择视频
+          </button>
+          <div class="dhc-upload__tips">
+            <span class="dhc-upload__tip"><svg class="zxt-icon"><use href="../shared/icons.svg#i-check-circle"/></svg> 正脸无遮挡</span>
+            <span class="dhc-upload__tip"><svg class="zxt-icon"><use href="../shared/icons.svg#i-check-circle"/></svg> 光线均匀</span>
+            <span class="dhc-upload__tip"><svg class="zxt-icon"><use href="../shared/icons.svg#i-check-circle"/></svg> 安静环境</span>
+            <span class="dhc-upload__tip"><svg class="zxt-icon"><use href="../shared/icons.svg#i-check-circle"/></svg> 1080P 以上</span>
+          </div>
+          <input type="file" id="videoFile" accept="video/*" style="display:none;" />
+        </label>
+      </div>
+
+      <div id="videoPreview" style="display:none;"></div>
+
+      <div class="dhc-footbar">
+        <button class="zxt-btn zxt-btn-ghost" data-back="0">
+          <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg> 上一步
+        </button>
+        <button class="zxt-btn zxt-btn-primary zxt-btn-lg" id="submitTrain" disabled>
+          <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-sparkles"/></svg> 开始训练
+        </button>
+      </div>
+    </section>
+
+    <!-- 步骤 3：生成中 -->
+    <section data-step-panel="2" style="display:none;">
+      <div class="dhc-gen">
+        <div class="dhc-gen__visual">
+          <div class="dhc-gen__pulse"></div>
+          <div class="zxt-circular dhc-gen__ring" style="width:220px;height:220px;">
+            <svg viewBox="0 0 180 180">
+              <defs>
+                <linearGradient id="zxtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#24bab4"/><stop offset="100%" stop-color="#28b1e8"/>
+                </linearGradient>
+              </defs>
+              <circle class="zxt-circular__track" cx="90" cy="90" r="80"/>
+              <circle class="zxt-circular__bar" id="genRing" cx="90" cy="90" r="80"
+                stroke-dasharray="502.65" stroke-dashoffset="502.65"/>
+            </svg>
+          </div>
+          <div class="dhc-gen__avatar">
+            <img id="genAvatar" src="https://i.pravatar.cc/300?img=12" alt="" />
+          </div>
+        </div>
+        <div class="dhc-gen__pct" id="genPct">0%</div>
+        <div class="dhc-gen__status" id="genStatus">正在上传训练视频...</div>
+        <div class="dhc-gen__eta">预计还需 <span id="genEta">8</span> 分钟，请勿关闭页面</div>
+
+        <div class="dhc-tasks" id="taskList"></div>
+      </div>
+
+      <div class="dhc-footbar">
+        <span class="zxt-text-muted zxt-text-sm">训练过程中你可以前往其他页面，完成后会在列表页通知你</span>
+        <a href="digital-human-list.html" class="zxt-btn zxt-btn-ghost">
+          <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-folder"/></svg> 后台运行
+        </a>
+      </div>
+    </section>
+
+    <!-- 步骤 4：完成 -->
+    <section data-step-panel="3" style="display:none;">
+      <div class="dhc-done">
+        <div class="dhc-done__check">
+          <svg class="zxt-icon"><use href="../shared/icons.svg#i-check"/></svg>
+        </div>
+        <h2 class="dhc-done__title">数字人创建成功！</h2>
+        <p class="dhc-done__desc">你的专属数字人已就绪，立即开始生成播报视频</p>
+
+        <div class="dhc-done__preview">
+          <div class="dhc-done__photo">
+            <img src="https://i.pravatar.cc/300?img=12" alt="数字人" />
+          </div>
+          <div class="dhc-done__info">
+            <div class="dhc-done__info-row"><span>数字人名称</span><span id="doneName">陈默</span></div>
+            <div class="dhc-done__info-row"><span>状态</span><span class="zxt-text-success">可用</span></div>
+            <div class="dhc-done__info-row"><span>训练时长</span><span>约 8 分钟</span></div>
+            <div class="dhc-done__info-row"><span>完成时间</span><span id="doneTime">--</span></div>
+          </div>
+        </div>
+
+        <div class="dhc-done__actions">
+          <a href="digital-human-list.html" class="zxt-btn zxt-btn-ghost zxt-btn-lg">
+            <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-user-round"/></svg> 返回列表
+          </a>
+          <a href="digital-human-speak.html" class="zxt-btn zxt-btn-primary zxt-btn-lg">
+            <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-mic-2"/></svg> 立即播报
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script src="../shared/mock-data.js"></script>
+<script src="../shared/app.js"></script>
+<script>
+(function () {
+  var M = window.ZXT_MOCK.digitalHuman;
+  var currentStep = 0;
+  var stepperEl = document.getElementById('stepper');
+  var circumference = 2 * Math.PI * 80; // 502.65
+
+  function renderStepper() {
+    stepperEl.innerHTML = M.createSteps.map(function (label, i) {
+      var cls = i < currentStep ? 'is-done' : (i === currentStep ? 'is-active' : '');
+      var icon = i < currentStep
+        ? '<svg class="zxt-icon" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-check"/></svg>'
+        : (i + 1);
+      return '<div class="zxt-stepper__item ' + cls + '">' +
+        '<div class="zxt-stepper__circle">' + icon + '</div>' +
+        '<div class="zxt-stepper__label">' + label + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function goStep(n) {
+    currentStep = n;
+    renderStepper();
+    document.querySelectorAll('[data-step-panel]').forEach(function (p) {
+      p.style.display = (parseInt(p.getAttribute('data-step-panel'), 10) === n) ? '' : 'none';
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (n === 2) startGenerating();
+    if (n === 3) {
+      document.getElementById('doneTime').textContent = new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g,'-');
+    }
+  }
+
+  // 步骤 1：协议
+  var agreeBox = document.getElementById('agreeBox');
+  var toStep2 = document.getElementById('toStep2');
+  agreeBox.addEventListener('click', function () {
+    agreeBox.classList.toggle('is-checked');
+    toStep2.disabled = !agreeBox.classList.contains('is-checked');
+  });
+  toStep2.addEventListener('click', function () { goStep(1); });
+
+  // 步骤 2：上传
+  var videoFile = document.getElementById('videoFile');
+  var submitTrain = document.getElementById('submitTrain');
+  var pickedFile = null;
+  videoFile.addEventListener('change', function () {
+    if (videoFile.files && videoFile.files[0]) {
+      pickedFile = videoFile.files[0];
+      var sizeMB = (pickedFile.size / 1024 / 1024).toFixed(1);
+      document.getElementById('uploadEmpty').style.display = 'none';
+      var pv = document.getElementById('videoPreview');
+      pv.style.display = '';
+      pv.innerHTML =
+        '<div class="dhc-video">' +
+          '<div class="dhc-video__poster"><svg class="zxt-icon"><use href="../shared/icons.svg#i-video"/></svg></div>' +
+          '<div>' +
+            '<div style="font-size:17px;font-weight:600;margin-bottom:14px;">视频已选择</div>' +
+            '<div class="dhc-video__meta-row"><span>文件名</span><span>' + pickedFile.name + '</span></div>' +
+            '<div class="dhc-video__meta-row"><span>文件大小</span><span>' + sizeMB + ' MB</span></div>' +
+            '<div class="dhc-video__meta-row"><span>格式</span><span>' + (pickedFile.type || 'video/mp4') + '</span></div>' +
+            '<div class="dhc-video__check"><svg class="zxt-icon"><use href="../shared/icons.svg#i-check-circle"/></svg> 视频检测通过，可以开始训练</div>' +
+            '<div style="margin-top:18px;display:flex;gap:10px;">' +
+              '<button class="zxt-btn zxt-btn-ghost zxt-btn-sm" id="reselect"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-refresh"/></svg> 重新选择</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      submitTrain.disabled = false;
+      document.getElementById('reselect').addEventListener('click', function () {
+        pickedFile = null; videoFile.value = '';
+        pv.style.display = 'none'; pv.innerHTML = '';
+        document.getElementById('uploadEmpty').style.display = '';
+        submitTrain.disabled = true;
+      });
+      ZXT.toast.show('视频已选择，点击开始训练', 'success');
+    }
+  });
+  submitTrain.addEventListener('click', function () { goStep(2); });
+
+  document.querySelectorAll('[data-back]').forEach(function (b) {
+    b.addEventListener('click', function () { goStep(parseInt(b.getAttribute('data-back'),10)); });
+  });
+
+  // 步骤 3：生成动画
+  function startGenerating() {
+    var ring = document.getElementById('genRing');
+    var pctEl = document.getElementById('genPct');
+    var statusEl = document.getElementById('genStatus');
+    var etaEl = document.getElementById('genEta');
+    var taskList = document.getElementById('taskList');
+    var progress = 0;
+
+    // 渲染任务列表
+    function renderTasks() {
+      taskList.innerHTML = M.createTasks.map(function (t, i) {
+        var state = 'pending';
+        if (progress >= t.marker) state = 'done';
+        else if (i === 0 || progress >= M.createTasks[i-1].marker) state = 'active';
+        var icon = state === 'done' ? '<svg class="zxt-icon"><use href="../shared/icons.svg#i-check"/></svg>'
+                 : state === 'active' ? '<svg class="zxt-icon"><use href="../shared/icons.svg#i-loader"/></svg>'
+                 : '<svg class="zxt-icon"><use href="../shared/icons.svg#i-clock"/></svg>';
+        var pctShow = state === 'active' ? (progress + '%') : (state === 'done' ? '100%' : '等待中');
+        return '<div class="dhc-task dhc-task--' + state + '">' +
+          '<div class="dhc-task__icon">' + icon + '</div>' +
+          '<div class="dhc-task__label">' + t.label + '</div>' +
+          '<div class="dhc-task__pct">' + pctShow + '</div>' +
+        '</div>';
+      }).join('');
+    }
+    renderTasks();
+
+    clearInterval(window.__dhcGenTimer);
+    window.__dhcGenTimer = setInterval(function () {
+      progress += Math.floor(Math.random()*4) + 2;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(window.__dhcGenTimer);
+        ring.style.strokeDashoffset = '0';
+        pctEl.textContent = '100%';
+        statusEl.textContent = '训练完成！';
+        renderTasks();
+        setTimeout(function () { goStep(3); }, 800);
+        return;
+      }
+      var offset = circumference * (1 - progress / 100);
+      ring.style.strokeDashoffset = offset;
+      pctEl.textContent = progress + '%';
+      etaEl.textContent = Math.max(1, Math.round((100 - progress) / 12));
+      // 当前状态文本
+      var current = M.createTasks.find(function (t) { return progress < t.marker; });
+      if (current) statusEl.textContent = current.label + '...';
+      renderTasks();
+    }, 450);
+  }
+
+  // 初始化
+  renderStepper();
+})();
+</script>
+</body>
+</html>

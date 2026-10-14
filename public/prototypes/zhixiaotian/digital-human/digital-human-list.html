@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的数字人 · 智小天</title>
+<link rel="stylesheet" href="../shared/styles.css" />
+<style>
+  /* 列表页局部样式 */
+  .dh-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .dh-action {
+    position: relative; border-radius: 18px; padding: 24px; overflow: hidden;
+    border: 1px solid var(--zxt-border); background: var(--zxt-surface);
+    display: flex; align-items: center; gap: 18px; cursor: pointer; transition: all .2s;
+  }
+  .dh-action:hover { transform: translateY(-2px); border-color: var(--zxt-border-strong); box-shadow: var(--zxt-shadow-card); }
+  .dh-action__icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dh-action__icon svg { width: 28px; height: 28px; }
+  .dh-action--create .dh-action__icon { background: rgba(36,186,180,.15); color: var(--zxt-accent); }
+  .dh-action--speak .dh-action__icon { background: rgba(40,177,232,.15); color: var(--zxt-accent-strong); }
+  .dh-action__title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .dh-action__desc { font-size: 13px; color: var(--zxt-text-muted); }
+  .dh-action__arrow { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); color: var(--zxt-text-muted); }
+  .dh-action__glow { position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; border-radius: 50%; filter: blur(50px); opacity: .35; pointer-events: none; }
+  .dh-action--create .dh-action__glow { background: #24bab4; }
+  .dh-action--speak .dh-action__glow { background: #28b1e8; }
+
+  .dh-pending {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--zxt-gradient-brand-soft);
+    border: 1px solid var(--zxt-border-strong);
+    border-radius: 14px; padding: 14px 18px; margin-bottom: 24px;
+  }
+  .dh-pending__icon { color: var(--zxt-info); animation: zxt-spin 1.4s linear infinite; }
+  .dh-pending__text { flex: 1; font-size: 13px; color: var(--zxt-text-secondary); }
+  .dh-pending__text b { color: var(--zxt-text-primary); font-weight: 600; }
+
+  /* 形象卡片 */
+  .dh-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+  .dh-card {
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border);
+    border-radius: 16px; overflow: hidden; transition: all .2s; position: relative;
+  }
+  .dh-card:hover { border-color: var(--zxt-border-strong); transform: translateY(-2px); box-shadow: var(--zxt-shadow-card); }
+  .dh-card__cover { position: relative; aspect-ratio: 3/4; background: var(--zxt-surface-soft); overflow: hidden; }
+  .dh-card__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .dh-card__badge { position: absolute; top: 10px; left: 10px; }
+  .dh-card__progress {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,.85), transparent);
+  }
+  .dh-card__progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #fff; margin-bottom: 6px; }
+  .dh-card__fail {
+    position: absolute; inset: 0; background: rgba(14,14,14,.78); backdrop-filter: blur(2px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px; text-align: center; gap: 8px;
+  }
+  .dh-card__fail svg { color: var(--zxt-danger); width: 26px; height: 26px; }
+  .dh-card__fail-text { font-size: 12px; color: var(--zxt-text-secondary); line-height: 1.5; }
+  .dh-card__body { padding: 12px 14px 14px; }
+  .dh-card__name { font-size: 15px; font-weight: 600; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+  .dh-card__role { font-size: 12px; color: var(--zxt-text-muted); margin-bottom: 10px; }
+  .dh-card__meta { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--zxt-text-muted); }
+  .dh-card__actions { display: flex; gap: 6px; }
+  .dh-card__action { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--zxt-text-muted); transition: all .15s; }
+  .dh-card__action:hover { background: var(--zxt-surface-soft); color: var(--zxt-text-primary); }
+  .dh-card__action.is-danger:hover { color: var(--zxt-danger); background: rgba(239,100,100,.1); }
+
+  /* 创建占位卡 */
+  .dh-card--create {
+    border: 1.5px dashed var(--zxt-border); background: transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 320px; color: var(--zxt-text-muted); cursor: pointer; gap: 10px;
+  }
+  .dh-card--create:hover { border-color: var(--zxt-accent); color: var(--zxt-info); background: var(--zxt-accent-soft); }
+  .dh-card--create .plus { width: 48px; height: 48px; border-radius: 50%; border: 1.5px dashed currentColor; display: flex; align-items: center; justify-content: center; }
+  .dh-card--create .plus svg { width: 22px; height: 22px; }
+
+  /* 视频卡片 */
+  .dh-videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+  .dh-video { background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 16px; overflow: hidden; transition: all .2s; cursor: pointer; }
+  .dh-video:hover { border-color: var(--zxt-border-strong); transform: translateY(-2px); box-shadow: var(--zxt-shadow-card); }
+  .dh-video__cover { position: relative; aspect-ratio: 16/10; background: var(--zxt-surface-soft); }
+  .dh-video__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .dh-video__play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.25); opacity: 0; transition: opacity .2s; }
+  .dh-video:hover .dh-video__play { opacity: 1; }
+  .dh-video__play-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.9); color: #041817; display: flex; align-items: center; justify-content: center; }
+  .dh-video__duration { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.7); color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 5px; }
+  .dh-video__platform { position: absolute; top: 8px; left: 8px; }
+  .dh-video__body { padding: 12px 14px; }
+  .dh-video__title { font-size: 14px; font-weight: 500; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dh-video__meta { font-size: 12px; color: var(--zxt-text-muted); display: flex; align-items: center; gap: 8px; }
+
+  .platform-tag { font-size: 11px; padding: 2px 8px; border-radius: 5px; background: rgba(0,0,0,.6); color: #fff; backdrop-filter: blur(4px); }
+  .platform-tag--douyin { background: rgba(0,0,0,.65); }
+  .platform-tag--shipinhao { background: rgba(7,193,96,.55); }
+  .platform-tag--xhs { background: rgba(255,36,66,.55); }
+  .platform-tag--bilibili { background: rgba(0,161,214,.55); }
+
+  /* 预览模态 */
+  .dh-preview { display: grid; grid-template-columns: 280px 1fr; gap: 24px; }
+  .dh-preview__photo { aspect-ratio: 3/4; border-radius: 14px; overflow: hidden; background: var(--zxt-surface-soft); }
+  .dh-preview__photo img { width: 100%; height: 100%; object-fit: cover; }
+  .dh-preview__name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .dh-preview__role { color: var(--zxt-text-muted); margin-bottom: 18px; }
+  .dh-preview__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .dh-preview__stat { background: var(--zxt-surface-soft); border-radius: 12px; padding: 14px; }
+  .dh-preview__stat-num { font-size: 22px; font-weight: 700; background: var(--zxt-gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .dh-preview__stat-label { font-size: 12px; color: var(--zxt-text-muted); margin-top: 2px; }
+  .dh-preview__row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--zxt-border); font-size: 13px; }
+  .dh-preview__row span:first-child { color: var(--zxt-text-muted); }
+
+  .dh-player { aspect-ratio: 16/9; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .dh-player__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .6; }
+  .dh-player__bigplay { width: 64px; height: 64px; border-radius: 50%; background: var(--zxt-gradient-brand); color: #041817; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; box-shadow: 0 8px 30px rgba(36,186,180,.5); }
+  .dh-player__bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px; background: linear-gradient(to top, rgba(0,0,0,.8), transparent); display: flex; align-items: center; gap: 12px; z-index: 1; }
+  .dh-player__bar button { color: #fff; display: flex; }
+  .dh-player__progress { flex: 1; height: 4px; background: rgba(255,255,255,.25); border-radius: 2px; position: relative; }
+  .dh-player__progress::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 35%; background: var(--zxt-gradient-brand); border-radius: 2px; }
+  .dh-player__time { font-size: 12px; color: rgba(255,255,255,.8); }
+
+  @media (max-width: 760px) {
+    .dh-hero { grid-template-columns: 1fr; }
+    .dh-preview { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body class="with-main-sidebar">
+
+<!-- 主侧栏 -->
+<aside class="main-sidebar">
+  <a href="../index.html" class="main-sidebar__logo" title="返回原型首页">智</a>
+  <nav class="main-sidebar__nav">
+    <a href="digital-human-list.html" class="main-sidebar__item is-active" title="数字人">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-user-round"/></svg>
+    </a>
+    <a href="../voice-clone/voice-clone.html" class="main-sidebar__item" title="音色克隆">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-audio-lines"/></svg>
+    </a>
+    <a href="../video-mixer/video-mixer.html" class="main-sidebar__item" title="视频混剪">
+      <svg class="zxt-icon"><use href="../shared/icons.svg#i-scissors"/></svg>
+    </a>
+  </nav>
+  <div class="main-sidebar__user">Z</div>
+</aside>
+
+<!-- 顶栏 -->
+<header class="zxt-topbar">
+  <a href="../index.html" class="zxt-topbar-back" title="返回">
+    <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg>
+  </a>
+  <div class="zxt-topbar-title">我的数字人</div>
+  <div class="zxt-topbar-sub">管理你的专属数字人形象与播报视频</div>
+  <div class="zxt-topbar__spacer"></div>
+  <button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="ZXT.toast.show('演示原型，搜索功能未接入','info')">
+    <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-search"/></svg>
+    搜索
+  </button>
+</header>
+
+<main style="padding-bottom: 48px;">
+
+  <!-- 快捷操作 -->
+  <div class="dh-hero">
+    <a class="dh-action dh-action--create" href="digital-human-create.html">
+      <div class="dh-action__glow"></div>
+      <div class="dh-action__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-camera"/></svg></div>
+      <div>
+        <div class="dh-action__title">创建数字人</div>
+        <div class="dh-action__desc">上传 2 分钟真人视频，训练你的专属形象</div>
+      </div>
+      <svg class="zxt-icon dh-action__arrow"><use href="../shared/icons.svg#i-chevron-right"/></svg>
+    </a>
+    <a class="dh-action dh-action--speak" href="digital-human-speak.html">
+      <div class="dh-action__glow"></div>
+      <div class="dh-action__icon"><svg class="zxt-icon"><use href="../shared/icons.svg#i-mic-2"/></svg></div>
+      <div>
+        <div class="dh-action__title">数字人播报</div>
+        <div class="dh-action__desc">输入脚本，一键生成数字人口播视频</div>
+      </div>
+      <svg class="zxt-icon dh-action__arrow"><use href="../shared/icons.svg#i-chevron-right"/></svg>
+    </a>
+  </div>
+
+  <!-- 生成中提示 -->
+  <div class="dh-pending" id="pendingBanner" style="display:none;">
+    <svg class="zxt-icon dh-pending__icon"><use href="../shared/icons.svg#i-loader"/></svg>
+    <div class="dh-pending__text">你的数字人 <b id="pendingName">陈默</b> 正在训练中，当前进度 <b id="pendingProgress">64%</b>，预计还需 8 分钟</div>
+    <button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="ZXT.toast.show('已刷新训练状态','info')">
+      <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-refresh"/></svg> 刷新
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div data-tabs data-tabs-scope="dhScope">
+    <div class="zxt-tabs">
+      <div class="zxt-tabs__item is-active" data-tab="avatars">我的形象 <span class="zxt-tabs__count" id="countAvatars">0</span></div>
+      <div class="zxt-tabs__item" data-tab="videos">我的视频 <span class="zxt-tabs__count" id="countVideos">0</span></div>
+    </div>
+  </div>
+
+  <div data-tabs-scope="dhScope">
+    <!-- 形象面板 -->
+    <div data-tab-panel="avatars">
+      <div class="dh-gallery" id="avatarGrid"></div>
+    </div>
+    <!-- 视频面板 -->
+    <div data-tab-panel="videos" style="display:none;">
+      <div class="dh-videos" id="videoGrid"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- 形象预览模态 -->
+<div class="zxt-modal-mask" id="avatarModal">
+  <div class="zxt-modal-panel zxt-modal-panel--lg">
+    <div class="zxt-modal-header">
+      <div class="zxt-modal-title">数字人详情</div>
+      <button class="zxt-modal-close" data-modal-close="avatarModal">
+        <svg class="zxt-icon"><use href="../shared/icons.svg#i-x"/></svg>
+      </button>
+    </div>
+    <div class="zxt-modal-body">
+      <div class="dh-preview" id="previewBody"></div>
+    </div>
+    <div class="zxt-modal-footer">
+      <button class="zxt-btn zxt-btn-ghost" data-modal-close="avatarModal">关闭</button>
+      <a class="zxt-btn zxt-btn-primary" href="digital-human-speak.html" id="previewSpeakBtn">
+        <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-mic-2"/></svg>
+        用 TA 播报
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- 视频播放模态 -->
+<div class="zxt-modal-mask" id="videoModal">
+  <div class="zxt-modal-panel zxt-modal-panel--lg">
+    <div class="zxt-modal-header">
+      <div class="zxt-modal-title" id="playerTitle">视频播放</div>
+      <button class="zxt-modal-close" data-modal-close="videoModal">
+        <svg class="zxt-icon"><use href="../shared/icons.svg#i-x"/></svg>
+      </button>
+    </div>
+    <div class="zxt-modal-body">
+      <div class="dh-player" id="playerBody"></div>
+    </div>
+    <div class="zxt-modal-footer">
+      <button class="zxt-btn zxt-btn-ghost" data-modal-close="videoModal">关闭</button>
+      <button class="zxt-btn zxt-btn-primary" onclick="ZXT.toast.show('演示原型，下载功能未接入','info')">
+        <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-download"/></svg> 下载视频
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认模态 -->
+<div class="zxt-modal-mask" id="deleteModal">
+  <div class="zxt-modal-panel" style="max-width:420px;">
+    <div class="zxt-modal-header">
+      <div class="zxt-modal-title">确认删除</div>
+      <button class="zxt-modal-close" data-modal-close="deleteModal">
+        <svg class="zxt-icon"><use href="../shared/icons.svg#i-x"/></svg>
+      </button>
+    </div>
+    <div class="zxt-modal-body">
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(239,100,100,.12);color:var(--zxt-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg class="zxt-icon"><use href="../shared/icons.svg#i-alert"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:600;margin-bottom:6px;" id="deleteTarget">删除该数字人？</div>
+          <div style="font-size:13px;color:var(--zxt-text-muted);">删除后不可恢复，该形象下的所有视频将一并清除。</div>
+        </div>
+      </div>
+    </div>
+    <div class="zxt-modal-footer">
+      <button class="zxt-btn zxt-btn-ghost" data-modal-close="deleteModal">取消</button>
+      <button class="zxt-btn zxt-btn-danger" id="confirmDeleteBtn">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- SVG 渐变定义（供圆形进度等引用） -->
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <linearGradient id="zxtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#24bab4"/>
+      <stop offset="100%" stop-color="#28b1e8"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<script src="../shared/mock-data.js"></script>
+<script src="../shared/app.js"></script>
+<script>
+(function () {
+  var M = window.ZXT_MOCK.digitalHuman;
+  var platformMap = {
+    douyin: { label: '抖音', cls: 'platform-tag--douyin' },
+    shipinhao: { label: '视频号', cls: 'platform-tag--shipinhao' },
+    xhs: { label: '小红书', cls: 'platform-tag--xhs' },
+    bilibili: { label: 'B站', cls: 'platform-tag--bilibili' }
+  };
+
+  function statusBadge(a) {
+    if (a.status === 'ready') return '<span class="zxt-badge zxt-badge--success"><svg class="zxt-icon zxt-icon--sm" style="width:12px;height:12px;"><use href="../shared/icons.svg#i-check-circle"/></svg> 可用</span>';
+    if (a.status === 'training') return '<span class="zxt-badge zxt-badge--info"><svg class="zxt-icon zxt-icon zxt-icon--sm" style="width:12px;height:12px;animation:zxt-spin 1.4s linear infinite;"><use href="../shared/icons.svg#i-loader"/></svg> 生成中 ' + a.progress + '%</span>';
+    if (a.status === 'failed') return '<span class="zxt-badge zxt-badge--danger"><svg class="zxt-icon zxt-icon--sm" style="width:12px;height:12px;"><use href="../shared/icons.svg#i-alert"/></svg> 已失败</span>';
+    if (a.status === 'pending') return '<span class="zxt-badge zxt-badge--warning"><svg class="zxt-icon zxt-icon--sm" style="width:12px;height:12px;"><use href="../shared/icons.svg#i-clock"/></svg> 待审核</span>';
+    return '';
+  }
+
+  function renderAvatars() {
+    var grid = document.getElementById('avatarGrid');
+    document.getElementById('countAvatars').textContent = M.avatars.length;
+    var html = '<a class="dh-card dh-card--create" href="digital-human-create.html">' +
+      '<div class="plus"><svg class="zxt-icon"><use href="../shared/icons.svg#i-plus"/></svg></div>' +
+      '<div style="font-weight:500;">创建新数字人</div>' +
+      '<div style="font-size:12px;">上传视频即可开始</div>' +
+      '</a>';
+
+    M.avatars.forEach(function (a) {
+      var progressHtml = '';
+      if (a.status === 'training') {
+        progressHtml = '<div class="dh-card__progress">' +
+          '<div class="dh-card__progress-label"><span>训练中</span><span>' + a.progress + '%</span></div>' +
+          '<div class="zxt-progress zxt-progress--sm"><div class="zxt-progress__bar" style="width:' + a.progress + '%"></div></div>' +
+          '</div>';
+      }
+      var failHtml = '';
+      if (a.status === 'failed') {
+        failHtml = '<div class="dh-card__fail">' +
+          '<svg class="zxt-icon"><use href="../shared/icons.svg#i-x-circle"/></svg>' +
+          '<div class="dh-card__fail-text">' + (a.failReason || '训练失败，请重新上传视频') + '</div>' +
+          '<button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="event.preventDefault();event.stopPropagation();location.href=\'digital-human-create.html\'">重新上传</button>' +
+          '</div>';
+      }
+      var disabled = a.status !== 'ready';
+      html += '<div class="dh-card" data-id="' + a.id + '">' +
+        '<div class="dh-card__cover">' +
+          '<img src="' + a.photoUrl + '" alt="' + a.name + '" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'zxt-cover-fallback\');" />' +
+          '<div class="dh-card__badge">' + statusBadge(a) + '</div>' +
+          progressHtml + failHtml +
+        '</div>' +
+        '<div class="dh-card__body">' +
+          '<div class="dh-card__name">' + a.name + '</div>' +
+          '<div class="dh-card__role">' + a.role + '</div>' +
+          '<div class="dh-card__meta">' +
+            '<span>' + (a.generatedCount != null ? '已生成 ' + a.generatedCount + ' 条' : a.createdAt) + '</span>' +
+            '<span class="dh-card__actions">' +
+              (disabled ? '' : '<button class="dh-card__action" data-act="preview" title="预览"><svg class="zxt-icon" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-eye"/></svg></button>') +
+              '<button class="dh-card__action is-danger" data-act="delete" title="删除"><svg class="zxt-icon" style="width:16px;height:16px;"><use href="../shared/icons.svg#i-trash"/></svg></button>' +
+            '</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    grid.innerHTML = html;
+
+    // 绑定卡片操作
+    grid.querySelectorAll('.dh-card[data-id]').forEach(function (card) {
+      var id = card.getAttribute('data-id');
+      var a = M.avatars.find(function (x) { return x.id === id; });
+      card.querySelector('[data-act="preview"]') && card.querySelector('[data-act="preview"]').addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation(); openPreview(a);
+      });
+      card.querySelector('[data-act="delete"]') && card.querySelector('[data-act="delete"]').addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation(); askDelete(a);
+      });
+      // 整卡点击：可用则预览，其它提示
+      card.addEventListener('click', function () {
+        if (a.status === 'ready') openPreview(a);
+        else if (a.status === 'training') ZXT.toast.show('该数字人正在训练中，请稍候', 'info');
+        else if (a.status === 'failed') ZXT.toast.show('训练失败，可重新上传视频', 'error');
+        else if (a.status === 'pending') ZXT.toast.show('正在审核中，预计 1 个工作日', 'info');
+      });
+    });
+  }
+
+  function openPreview(a) {
+    var body = document.getElementById('previewBody');
+    body.innerHTML =
+      '<div class="dh-preview__photo"><img src="' + a.photoUrl + '" alt="' + a.name + '"/></div>' +
+      '<div>' +
+        '<div class="dh-preview__name">' + a.name + '</div>' +
+        '<div class="dh-preview__role">' + a.role + '</div>' +
+        '<div class="dh-preview__stats">' +
+          '<div class="dh-preview__stat"><div class="dh-preview__stat-num">' + (a.generatedCount || 0) + '</div><div class="dh-preview__stat-label">累计生成视频</div></div>' +
+          '<div class="dh-preview__stat"><div class="dh-preview__stat-num">' + (a.authorized ? '已授权' : '未授权') + '</div><div class="dh-preview__stat-label">肖像授权</div></div>' +
+        '</div>' +
+        '<div class="dh-preview__row"><span>数字人 ID</span><span>' + a.id + '</span></div>' +
+        '<div class="dh-preview__row"><span>创建时间</span><span>' + a.createdAt + '</span></div>' +
+        '<div class="dh-preview__row"><span>状态</span><span class="zxt-text-success">可用</span></div>' +
+        '<div class="dh-preview__row"><span>训练来源</span><span>真人视频训练</span></div>' +
+      '</div>';
+    ZXT.modal.open('avatarModal');
+  }
+
+  var pendingDeleteId = null;
+  function askDelete(a) {
+    pendingDeleteId = a.id;
+    document.getElementById('deleteTarget').textContent = '确定删除数字人「' + a.name + '」？';
+    ZXT.modal.open('deleteModal');
+  }
+  document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+    if (pendingDeleteId) {
+      M.avatars = M.avatars.filter(function (x) { return x.id !== pendingDeleteId; });
+      renderAvatars();
+      ZXT.modal.close('deleteModal');
+      ZXT.toast.show('已删除（演示）', 'success');
+      pendingDeleteId = null;
+      updatePendingBanner();
+    }
+  });
+
+  function renderVideos() {
+    var grid = document.getElementById('videoGrid');
+    document.getElementById('countVideos').textContent = M.videos.length;
+    var html = '';
+    M.videos.forEach(function (v) {
+      var a = M.avatars.find(function (x) { return x.id === v.avatarId; });
+      var p = platformMap[v.platform] || { label: v.platform, cls: '' };
+      var m = Math.floor(v.durationSec / 60), s = v.durationSec % 60;
+      var dur = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+      html += '<div class="dh-video" data-id="' + v.id + '">' +
+        '<div class="dh-video__cover">' +
+          '<img src="' + v.thumbnail + '" alt="' + v.title + '" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'zxt-cover-fallback\');" />' +
+          '<span class="platform-tag ' + p.cls + '">' + p.label + '</span>' +
+          '<div class="dh-video__play"><div class="dh-video__play-btn"><svg class="zxt-icon" style="width:22px;height:22px;"><use href="../shared/icons.svg#i-play"/></svg></div></div>' +
+          '<span class="dh-video__duration">' + dur + '</span>' +
+        '</div>' +
+        '<div class="dh-video__body">' +
+          '<div class="dh-video__title">' + v.title + '</div>' +
+          '<div class="dh-video__meta">' +
+            '<svg class="zxt-icon" style="width:13px;height:13px;"><use href="../shared/icons.svg#i-user"/></svg>' +
+            (a ? a.name : '未知数字人') +
+            '<span style="margin-left:auto;">' + v.createdAt + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    grid.innerHTML = html;
+    grid.querySelectorAll('.dh-video').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var v = M.videos.find(function (x) { return x.id === card.getAttribute('data-id'); });
+        openPlayer(v);
+      });
+    });
+  }
+
+  function openPlayer(v) {
+    document.getElementById('playerTitle').textContent = v.title;
+    var body = document.getElementById('playerBody');
+    var m = Math.floor(v.durationSec / 60), s = v.durationSec % 60;
+    var dur = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    body.innerHTML =
+      '<img class="dh-player__poster" src="' + v.thumbnail + '" onerror="this.style.display=\'none\';"/>' +
+      '<div class="dh-player__bigplay"><svg class="zxt-icon" style="width:26px;height:26px;"><use href="../shared/icons.svg#i-play"/></svg></div>' +
+      '<div class="dh-player__bar">' +
+        '<button><svg class="zxt-icon" style="width:18px;height:18px;"><use href="../shared/icons.svg#i-play"/></svg></button>' +
+        '<div class="dh-player__progress"></div>' +
+        '<span class="dh-player__time">00:17 / ' + dur + '</span>' +
+      '</div>';
+    ZXT.modal.open('videoModal');
+  }
+
+  function updatePendingBanner() {
+    var training = M.avatars.filter(function (a) { return a.status === 'training'; });
+    var banner = document.getElementById('pendingBanner');
+    if (training.length) {
+      banner.style.display = 'flex';
+      document.getElementById('pendingName').textContent = training.map(function (a) { return a.name; }).join('、');
+      var max = Math.max.apply(null, training.map(function (a) { return a.progress; }));
+      document.getElementById('pendingProgress').textContent = max + '%';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // 初始化
+  renderAvatars();
+  renderVideos();
+  updatePendingBanner();
+})();
+</script>
+</body>
+</html>

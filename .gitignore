@@ -36,3 +36,6 @@ dist-ssr
 
 # 部署配置（含服务器密码，不提交）
 deploy.config.json
+
+# 原型源文件（已复制到 public/prototypes 下随站发布，根目录源文件不提交）
+zhixiaotian-prototypes

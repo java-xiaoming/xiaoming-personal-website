@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>视频混剪 · 智小天</title>
+<link rel="stylesheet" href="../shared/styles.css" />
+<style>
+  /* 双栏：混剪工作流侧栏 + 主区 */
+  body { background: var(--zxt-video-bg); }
+  .vm-shell { display: grid; grid-template-columns: var(--zxt-mixer-sidebar-w) 1fr; min-height: 100vh; }
+
+  /* 工作流侧栏 */
+  .wm-side {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--zxt-sidebar-bg); border-right: 1px solid var(--zxt-border);
+    padding: 20px 14px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .wm-side__logo { display: flex; align-items: center; gap: 10px; padding: 0 6px 18px; margin-bottom: 10px; border-bottom: 1px solid var(--zxt-border); }
+  .wm-side__logo-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--zxt-gradient-brand); display: flex; align-items: center; justify-content: center; color: #041817; font-weight: 800; font-size: 15px; }
+  .wm-side__logo-text { font-size: 14px; font-weight: 600; }
+  .wm-step {
+    display: flex; gap: 10px; padding: 10px 8px; border-radius: 10px; cursor: pointer;
+    color: var(--zxt-text-muted); transition: all .15s; position: relative;
+  }
+  .wm-step:hover { background: rgba(255,255,255,.03); color: var(--zxt-text-secondary); }
+  .wm-step__num {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--zxt-surface-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
+    border: 1.5px solid var(--zxt-border); flex-shrink: 0; transition: all .2s;
+  }
+  .wm-step__label { font-size: 13px; line-height: 24px; }
+  .wm-step.is-done .wm-step__num { background: var(--zxt-accent); border-color: var(--zxt-accent); color: #041817; }
+  .wm-step.is-active { color: var(--zxt-text-primary); background: var(--zxt-accent-soft); }
+  .wm-step.is-active .wm-step__num { background: var(--zxt-gradient-brand); border-color: transparent; color: #041817; box-shadow: 0 0 0 4px rgba(36,186,180,.15); }
+  .wm-step.is-locked { opacity: .4; cursor: not-allowed; }
+  .wm-step.is-locked .wm-step__num::after { content: '🔒'; font-size: 10px; }
+  .wm-step.is-locked .wm-step__num { font-size: 0; }
+  .wm-side__foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--zxt-border); }
+  .wm-side__back { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--zxt-text-muted); padding: 8px; border-radius: 8px; cursor: pointer; }
+  .wm-side__back:hover { color: var(--zxt-text-primary); background: rgba(255,255,255,.03); }
+
+  /* 主区域顶栏 */
+  .wm-main { display: flex; flex-direction: column; min-width: 0; }
+  .wm-topbar {
+    position: sticky; top: 0; z-index: 30; height: var(--zxt-topbar-h);
+    display: flex; align-items: center; gap: 16px; padding: 0 28px;
+    background: rgba(14,14,14,.78); backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(48,48,48,.6);
+  }
+  .wm-topbar__title { font-size: 16px; font-weight: 600; }
+  .wm-topbar__spacer { flex: 1; }
+
+  .wm-content { padding: 24px 28px 48px; flex: 1; }
+
+  /* 项目信息/子步骤导航 */
+  .wm-subtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--zxt-border); margin-bottom: 22px; }
+  .wm-subtab { padding: 10px 16px; font-size: 13px; color: var(--zxt-text-muted); cursor: pointer; position: relative; transition: color .15s; }
+  .wm-subtab:hover { color: var(--zxt-text-secondary); }
+  .wm-subtab.is-active { color: var(--zxt-text-primary); font-weight: 500; }
+  .wm-subtab.is-active::after { content:''; position:absolute; left:16px; right:16px; bottom:-1px; height:2px; background: var(--zxt-gradient-brand); border-radius: 2px; }
+
+  .wm-grid-2 { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+
+  /* 项目创建 */
+  .wm-create-card { background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 16px; padding: 24px; }
+  .wm-quick-templates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+  .wm-quick-tpl { padding: 16px; border: 1px solid var(--zxt-border); border-radius: 12px; cursor: pointer; transition: all .18s; text-align: center; }
+  .wm-quick-tpl:hover { border-color: var(--zxt-border-strong); background: var(--zxt-surface-soft); }
+  .wm-quick-tpl.is-active { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); }
+  .wm-quick-tpl__icon { width: 40px; height: 40px; border-radius: 10px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; }
+  .wm-quick-tpl__name { font-size: 13px; font-weight: 500; }
+
+  /* 模板网格 */
+  .wm-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+  .wm-tpl {
+    border: 1px solid var(--zxt-border); border-radius: 12px; overflow: hidden; cursor: pointer;
+    background: var(--zxt-surface); transition: all .18s;
+  }
+  .wm-tpl:hover { border-color: var(--zxt-border-strong); transform: translateY(-2px); }
+  .wm-tpl.is-active { border-color: var(--zxt-accent); box-shadow: 0 0 0 3px rgba(36,186,180,.15); }
+  .wm-tpl__cover { aspect-ratio: 9/16; background: var(--zxt-surface-soft); position: relative; }
+  .wm-tpl__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .wm-tpl__cover--landscape { aspect-ratio: 16/9; }
+  .wm-tpl__blank { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--zxt-text-muted); gap: 8px; }
+  .wm-tpl__blank svg { width: 30px; height: 30px; }
+  .wm-tpl__body { padding: 10px 12px; }
+  .wm-tpl__title { font-size: 13px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wm-tpl__meta { font-size: 11px; color: var(--zxt-text-muted); display: flex; gap: 8px; align-items: center; }
+  .wm-tpl__check { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--zxt-gradient-brand); color: #041817; display: none; align-items: center; justify-content: center; }
+  .wm-tpl.is-active .wm-tpl__check { display: flex; }
+
+  /* 脚本 */
+  .wm-script { background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 16px; padding: 20px; }
+  .wm-script__item { padding: 16px; border: 1px solid var(--zxt-border); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: all .18s; position: relative; }
+  .wm-script__item:hover { border-color: var(--zxt-border-strong); }
+  .wm-script__item.is-active { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); }
+  .wm-script__item.is-active::before { content: '✓'; position: absolute; top: 12px; right: 14px; width: 22px; height: 22px; border-radius: 50%; background: var(--zxt-gradient-brand); color: #041817; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .wm-script__text { font-size: 13px; line-height: 1.7; color: var(--zxt-text-secondary); }
+  .wm-script__warn { margin-top: 10px; padding: 8px 12px; background: rgba(243,192,75,.1); border: 1px solid rgba(243,192,75,.25); border-radius: 8px; font-size: 12px; color: var(--zxt-warning); display: flex; align-items: center; gap: 6px; }
+  .wm-script__tools { display: flex; gap: 8px; margin-top: 16px; }
+
+  /* 素材 */
+  .wm-mat-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .wm-mat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .wm-mat {
+    border: 1px solid var(--zxt-border); border-radius: 12px; overflow: hidden; cursor: pointer;
+    background: var(--zxt-surface); transition: all .15s; position: relative;
+  }
+  .wm-mat:hover { border-color: var(--zxt-border-strong); transform: translateY(-1px); }
+  .wm-mat.is-selected { border-color: var(--zxt-accent); box-shadow: 0 0 0 3px rgba(36,186,180,.15); }
+  .wm-mat__cover { aspect-ratio: 9/16; background: var(--zxt-surface-soft); position: relative; }
+  .wm-mat__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .wm-mat__dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.7); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+  .wm-mat__check { position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.6); border: 1.5px solid #fff; display: none; align-items: center; justify-content: center; }
+  .wm-mat.is-selected .wm-mat__check { display: flex; background: var(--zxt-gradient-brand); border-color: transparent; color: #041817; }
+  .wm-mat__body { padding: 8px 10px; }
+  .wm-mat__name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wm-upload-zone {
+    border: 1.5px dashed var(--zxt-border); border-radius: 14px; padding: 24px;
+    text-align: center; color: var(--zxt-text-muted); cursor: pointer; transition: all .18s;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; justify-content: center;
+    min-height: 180px; background: var(--zxt-surface);
+  }
+  .wm-upload-zone:hover { border-color: var(--zxt-accent); color: var(--zxt-info); background: var(--zxt-accent-soft); }
+
+  /* BGM */
+  .wm-bgm { display: flex; flex-direction: column; gap: 8px; }
+  .wm-bgm__item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--zxt-border); border-radius: 10px; cursor: pointer; transition: all .15s; background: var(--zxt-surface); }
+  .wm-bgm__item:hover { border-color: var(--zxt-border-strong); }
+  .wm-bgm__item.is-active { border-color: var(--zxt-accent); background: var(--zxt-accent-soft); }
+  .wm-bgm__play { width: 32px; height: 32px; border-radius: 50%; background: var(--zxt-accent-soft); color: var(--zxt-info); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .wm-bgm__info { flex: 1; min-width: 0; }
+  .wm-bgm__name { font-size: 13px; font-weight: 500; }
+  .wm-bgm__meta { font-size: 11px; color: var(--zxt-text-muted); }
+  .wm-bgm__tag { font-size: 10px; padding: 2px 7px; border-radius: 5px; }
+  .wm-bgm__tag--normal { background: var(--zxt-surface-soft); color: var(--zxt-text-muted); }
+  .wm-bgm__tag--purple { background: rgba(124,92,255,.15); color: #a78bff; }
+
+  /* 手机预览 */
+  .wm-phone {
+    position: sticky; top: calc(var(--zxt-topbar-h) + 16px);
+    width: 100%; max-width: 280px; margin: 0 auto;
+  }
+  .wm-phone__frame {
+    aspect-ratio: 9/19.5; border: 8px solid #1a1a1a; border-radius: 32px;
+    background: #000; overflow: hidden; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  }
+  .wm-phone__screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .wm-phone__notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 110px; height: 22px; background: #1a1a1a; border-radius: 0 0 14px 14px; z-index: 2; }
+  .wm-phone__video { flex: 1; position: relative; background: linear-gradient(135deg,#1a2e2c,#0f2220); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .wm-phone__video img { width: 100%; height: 100%; object-fit: cover; }
+  .wm-phone__overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; background: linear-gradient(to top, rgba(0,0,0,.6), transparent 40%); }
+  .wm-phone__subtitle { color: #fff; font-size: 12px; line-height: 1.5; text-align: center; padding: 6px 10px; background: rgba(0,0,0,.4); border-radius: 6px; backdrop-filter: blur(4px); }
+  .wm-phone__title { position: absolute; top: 32px; left: 14px; right: 14px; color: #fff; font-size: 14px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+  .wm-phone__hint { text-align: center; color: var(--zxt-text-muted); font-size: 12px; margin-top: 12px; }
+  .wm-phone__actions { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* 生成任务 */
+  .wm-tasks { display: flex; flex-direction: column; gap: 12px; }
+  .wm-task {
+    display: grid; grid-template-columns: 100px 1fr auto; gap: 16px;
+    background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 14px; padding: 14px;
+  }
+  .wm-task__cover { aspect-ratio: 9/16; border-radius: 8px; background: var(--zxt-surface-soft); overflow: hidden; }
+  .wm-task__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .wm-task__cover--running { background: linear-gradient(135deg,#1a2e2c,#0f2220); display: flex; align-items: center; justify-content: center; }
+  .wm-task__title { font-weight: 600; margin-bottom: 6px; }
+  .wm-task__meta { font-size: 12px; color: var(--zxt-text-muted); margin-bottom: 10px; }
+  .wm-task__err { font-size: 12px; color: var(--zxt-danger); margin-top: 8px; display: flex; gap: 6px; align-items: flex-start; }
+  .wm-task__actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+
+  /* 预览成片 */
+  .wm-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 16px; }
+  .wm-preview { background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 14px; overflow: hidden; }
+  .wm-preview__cover { aspect-ratio: 9/16; background: var(--zxt-surface-soft); position: relative; }
+  .wm-preview__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .wm-preview__dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.7); color:#fff; font-size: 11px; padding: 2px 8px; border-radius: 5px; }
+  .wm-preview__status { position: absolute; top: 8px; left: 8px; }
+  .wm-preview__body { padding: 12px 14px; }
+  .wm-preview__title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .wm-preview__note { font-size: 12px; color: var(--zxt-text-muted); }
+
+  .wm-section-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .wm-section-title .zxt-icon { width: 18px; height: 18px; color: var(--zxt-info); }
+  .wm-card { background: var(--zxt-surface); border: 1px solid var(--zxt-border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+
+  .wm-param-row { display: grid; grid-template-columns: 110px 1fr; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--zxt-border); }
+  .wm-param-row:last-child { border-bottom: none; }
+  .wm-param-label { font-size: 13px; color: var(--zxt-text-secondary); }
+  .wm-batch { display: flex; align-items: center; gap: 12px; }
+
+  @media (max-width: 1100px) { .wm-grid-2 { grid-template-columns: 1fr; } .wm-phone { position: static; max-width: 240px; } }
+  @media (max-width: 820px) {
+    .vm-shell { grid-template-columns: 1fr; }
+    .wm-side { position: static; height: auto; flex-direction: row; overflow-x: auto; padding: 10px; gap: 6px; }
+    .wm-side__logo, .wm-side__foot { display: none; }
+    .wm-step { flex-shrink: 0; }
+    .wm-step__label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="vm-shell">
+  <!-- 工作流侧栏 -->
+  <aside class="wm-side" id="wmSidebar"></aside>
+
+  <!-- 主区域 -->
+  <div class="wm-main">
+    <div class="wm-topbar">
+      <div class="wm-topbar__title" id="wmTitle">项目创建</div>
+      <span class="zxt-badge zxt-badge--info" id="wmStepBadge">第 1 步 / 共 6 步</span>
+      <div class="wm-topbar__spacer"></div>
+      <button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="ZXT.toast.show('已自动保存草稿','success')">
+        <svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-save"/></svg> 保存草稿
+      </button>
+    </div>
+
+    <div class="wm-content" id="wmContent"></div>
+  </div>
+</div>
+
+<!-- 模板预览模态 -->
+<div class="zxt-modal-mask" id="tplModal">
+  <div class="zxt-modal-panel zxt-modal-panel--lg">
+    <div class="zxt-modal-header">
+      <div class="zxt-modal-title" id="tplModalTitle">模板预览</div>
+      <button class="zxt-modal-close" data-modal-close="tplModal"><svg class="zxt-icon"><use href="../shared/icons.svg#i-x"/></svg></button>
+    </div>
+    <div class="zxt-modal-body" id="tplModalBody"></div>
+    <div class="zxt-modal-footer">
+      <button class="zxt-btn zxt-btn-ghost" data-modal-close="tplModal">取消</button>
+      <button class="zxt-btn zxt-btn-primary" id="tplModalConfirm">使用此模板</button>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/mock-data.js"></script>
+<script src="../shared/app.js"></script>
+<script>
+(function () {
+  var VM = window.ZXT_MOCK.videoMixer;
+  var state = {
+    step: 3, // 默认展示素材上传（最丰富的一步）
+    subTab: 'template',
+    projectName: '效率工具短视频合集',
+    batchSize: 3,
+    ratio: 'portrait',
+    resolution: '1080P',
+    templateId: 't-1',
+    selectedScript: 's-1',
+    selectedMats: ['r-1','r-2','r-7'],
+    selectedBgm: 'b-1',
+    title: '三个让效率翻倍的神器',
+    subtitle: true
+  };
+
+  var stepMeta = [
+    { id: 'create', title: '项目创建' },
+    { id: 'params', title: '视频设置' },
+    { id: 'script', title: '脚本生成' },
+    { id: 'material', title: '素材上传' },
+    { id: 'generate', title: '视频生成' },
+    { id: 'preview', title: '视频预览' }
+  ];
+
+  function renderSidebar() {
+    document.getElementById('wmSidebar').innerHTML =
+      '<div class="wm-side__logo"><div class="wm-side__logo-mark">智</div><div class="wm-side__logo-text">视频混剪</div></div>' +
+      VM.steps.map(function (s, i) {
+        var cls = '';
+        if (s.status === 'done') cls = 'is-done';
+        else if (s.status === 'active' || i === state.step) cls = 'is-active';
+        else if (s.status === 'locked' || i > state.step) cls = 'is-locked';
+        var label = i < state.step ? '<svg class="zxt-icon" style="width:13px;height:13px;"><use href="../shared/icons.svg#i-check"/></svg>' : s.number;
+        return '<div class="wm-step ' + cls + '" data-step="' + i + '">' +
+          '<div class="wm-step__num">' + label + '</div>' +
+          '<div class="wm-step__label">' + s.label + '</div>' +
+        '</div>';
+      }).join('') +
+      '<div class="wm-side__foot"><a class="wm-side__back" href="../index.html"><svg class="zxt-icon" style="width:14px;height:14px;"><use href="../shared/icons.svg#i-arrow-left"/></svg> 返回原型首页</a></div>';
+    document.querySelectorAll('.wm-step[data-step]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var idx = parseInt(el.getAttribute('data-step'),10);
+        if (el.classList.contains('is-locked')) { ZXT.toast.show('请先完成前面的步骤', 'info'); return; }
+        state.step = idx;
+        render();
+      });
+    });
+  }
+
+  function phonePreview(extra) {
+    extra = extra || {};
+    var cover = extra.cover || 'https://picsum.photos/seed/phone' + state.step + '/300/600';
+    return '<div class="wm-phone">' +
+      '<div class="wm-phone__frame">' +
+        '<div class="wm-phone__screen">' +
+          '<div class="wm-phone__notch"></div>' +
+          '<div class="wm-phone__video">' +
+            '<img src="' + cover + '" onerror="this.style.display=\'none\'"/>' +
+            '<div class="wm-phone__title">' + (extra.title || state.title || '视频标题预览') + '</div>' +
+            '<div class="wm-phone__overlay">' +
+              (state.subtitle ? '<div class="wm-phone__subtitle">' + (extra.subtitle || '三个让效率翻倍的小工具，赶紧收藏试试吧！') + '</div>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wm-phone__hint">' + (extra.hint || '竖版 9:16 · 1080P · 实时预览') + '</div>' +
+      (extra.actions || '') +
+    '</div>';
+  }
+
+  function stepCreate() {
+    return '<div class="wm-grid-2">' +
+      '<div>' +
+        '<div class="wm-section-title"><svg class="zxt-icon"><use href="../shared/icons.svg#i-folder"/></svg>创建新项目</div>' +
+        '<div class="wm-create-card">' +
+          '<div class="zxt-field"><label class="zxt-label">项目名称</label><input class="zxt-input" id="projName" value="' + state.projectName + '" maxlength="40"/></div>' +
+          '<div class="zxt-field" style="margin-bottom:0;"><label class="zxt-label">视频用途</label>' +
+            '<div class="wm-quick-templates">' +
+              '<div class="wm-quick-tpl is-active"><div class="wm-quick-tpl__icon" style="background:rgba(36,186,180,.15);color:var(--zxt-accent);"><svg class="zxt-icon"><use href="../shared/icons.svg#i-smartphone"/></svg></div><div class="wm-quick-tpl__name">短视频带货</div></div>' +
+              '<div class="wm-quick-tpl"><div class="wm-quick-tpl__icon" style="background:rgba(40,177,232,.15);color:var(--zxt-accent-strong);"><svg class="zxt-icon"><use href="../shared/icons.svg#i-film"/></svg></div><div class="wm-quick-tpl__name">企业宣传</div></div>' +
+              '<div class="wm-quick-tpl"><div class="wm-quick-tpl__icon" style="background:rgba(124,92,255,.15);color:#a78bff;"><svg class="zxt-icon"><use href="../shared/icons.svg#i-book"/></svg></div><div class="wm-quick-tpl__name">知识科普</div></div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      phonePreview({ hint: '填写项目信息后进入下一步' }) +
+    '</div>';
+  }
+
+  function stepParams() {
+    var subTabsHtml = VM.paramsSubTabs.map(function (t) {
+      return '<div class="wm-subtab' + (state.subTab === t.id ? ' is-active' : '') + '" data-sub="' + t.id + '">' + t.label + '</div>';
+    }).join('');
+
+    var subContent = '';
+    if (state.subTab === 'template') {
+      subContent = '<div class="wm-section-title"><svg class="zxt-icon"><use href="../shared/icons.svg#i-layout"/></svg>选择视频模板</div>' +
+        '<div class="wm-templates" id="tplGrid">' +
+        VM.templates.map(function (t) {
+          var isBlank = t.blank;
+          var landscape = t.ratio === 'landscape';
+          var cover = isBlank
+            ? '<div class="wm-tpl__blank"><svg class="zxt-icon"><use href="../shared/icons.svg#i-save"/></svg><span style="font-size:12px;">空白模板</span></div>'
+            : '<img src="' + t.cover + '" onerror="this.style.display=\'none\'"/>';
+          return '<div class="wm-tpl' + (state.templateId === t.id ? ' is-active' : '') + '" data-tpl="' + t.id + '">' +
+            '<div class="wm-tpl__cover' + (landscape ? ' wm-tpl__cover--landscape' : '') + '">' +
+              cover +
+              '<div class="wm-tpl__check"><svg class="zxt-icon" style="width:13px;height:13px;"><use href="../shared/icons.svg#i-check"/></svg></div>' +
+            '</div>' +
+            '<div class="wm-tpl__body"><div class="wm-tpl__title">' + t.title + '</div>' +
+            '<div class="wm-tpl__meta"><span>' + (landscape ? '横版' : '竖版') + '</span>' + (t.uses ? '<span>' + t.uses + ' 人使用</span>' : '') + '</div></div>' +
+          '</div>';
+        }).join('') + '</div>';
+    } else if (state.subTab === 'params') {
+      subContent = '<div class="wm-card">' +
+        '<div class="wm-param-row"><div class="wm-param-label">画面比例</div><div class="zxt-segmented">' +
+          VM.ratioOptions.map(function(r){ return '<div class="zxt-segmented__item' + (state.ratio===r.value?' is-active':'') + '" data-ratio="' + r.value + '">' + r.label + '</div>'; }).join('') +
+        '</div></div>' +
+        '<div class="wm-param-row"><div class="wm-param-label">清晰度</div><div class="zxt-segmented">' +
+          VM.resolutionOptions.map(function(r){ return '<div class="zxt-segmented__item' + (state.resolution===r?' is-active':'') + '" data-res="' + r + '">' + r + '</div>'; }).join('') +
+        '</div></div>' +
+        '<div class="wm-param-row"><div class="wm-param-label">生成条数</div><div class="wm-batch">' +
+          '<div class="zxt-stepper-num"><button data-batch="-1">−</button><span id="batchNum">' + state.batchSize + '</span><button data-batch="1">+</button></div>' +
+          '<span class="zxt-text-muted zxt-text-sm">一次最多生成 10 条</span>' +
+        '</div></div>' +
+        '<div class="wm-param-row"><div class="wm-param-label">去口头禅</div><label class="zxt-switch"><input type="checkbox" checked /><span class="zxt-switch__slider"></span></label></div>' +
+      '</div>';
+    } else if (state.subTab === 'title') {
+      subContent = '<div class="wm-card">' +
+        '<div class="zxt-field"><label class="zxt-label">视频标题</label><input class="zxt-input" id="titleInput" value="' + state.title + '" maxlength="30"/><div class="zxt-counter" id="titleCounter"></div></div>' +
+        '<div class="zxt-field" style="margin-bottom:0;"><label class="zxt-label">标题样式</label>' +
+          '<div class="wm-quick-templates">' +
+            '<div class="wm-quick-tpl is-active"><div class="wm-quick-tpl__icon" style="background:var(--zxt-accent-soft);color:var(--zxt-info);"><svg class="zxt-icon"><use href="../shared/icons.svg#i-type"/></svg></div><div class="wm-quick-tpl__name">顶部大字</div></div>' +
+            '<div class="wm-quick-tpl"><div class="wm-quick-tpl__icon" style="background:var(--zxt-surface-soft);color:var(--zxt-text-muted);"><svg class="zxt-icon"><use href="../shared/icons.svg#i-type"/></svg></div><div class="wm-quick-tpl__name">居中弹出</div></div>' +
+            '<div class="wm-quick-tpl"><div class="wm-quick-tpl__icon" style="background:var(--zxt-surface-soft);color:var(--zxt-text-muted);"><svg class="zxt-icon"><use href="../shared/icons.svg#i-type"/></svg></div><div class="wm-quick-tpl__name">底部字幕条</div></div>' +
+          '</div>' +
+        '</div></div>';
+    } else if (state.subTab === 'subtitle') {
+      subContent = '<div class="wm-card">' +
+        '<label class="zxt-flex zxt-items-center zxt-gap-12" style="cursor:pointer;margin-bottom:18px;">' +
+          '<span class="zxt-switch"><input type="checkbox" id="subSwitch" ' + (state.subtitle?'checked':'') + '/><span class="zxt-switch__slider"></span></span>' +
+          '<span><b>开启字幕</b><span class="zxt-text-muted zxt-text-sm" style="margin-left:8px;">自动识别语音生成字幕</span></span>' +
+        '</label>' +
+        '<div class="zxt-grid zxt-grid-2">' +
+          '<div class="zxt-field"><label class="zxt-label">字幕位置</label><select class="zxt-select"><option>底部居中</option><option>顶部居中</option><option>全屏歌词</option></select></div>' +
+          '<div class="zxt-field"><label class="zxt-label">字体大小</label><select class="zxt-select"><option>适中</option><option>较大</option><option>较小</option></select></div>' +
+          '<div class="zxt-field"><label class="zxt-label">字体颜色</label><div style="display:flex;gap:8px;"><span style="width:32px;height:32px;border-radius:8px;background:#fff;border:2px solid var(--zxt-accent);"></span><span style="width:32px;height:32px;border-radius:8px;background:#ffe14d;"></span><span style="width:32px;height:32px;border-radius:8px;background:#49faf9;"></span><span style="width:32px;height:32px;border-radius:8px;background:#000;border:1px solid var(--zxt-border);"></span></div></div>' +
+          '<div class="zxt-field"><label class="zxt-label">描边</label><select class="zxt-select"><option>黑色描边（推荐）</option><option>无描边</option><option>阴影</option></select></div>' +
+        '</div></div>';
+    } else if (state.subTab === 'voice') {
+      subContent = '<div class="wm-card"><div class="wm-section-title" style="margin-bottom:14px;"><svg class="zxt-icon"><use href="../shared/icons.svg#i-audio-lines"/></svg>选择旁白音色</div>' +
+        '<div class="dhs-voices" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">' +
+        VM.voices.map(function(v,i){
+          var cls = v.gender==='female'?'dhs-voice__avatar--female':'dhs-voice__avatar--male';
+          var ch = v.gender==='female'?'女':'男';
+          return '<div class="dhs-voice' + (i===0?' is-active':'') + '"><div class="dhs-voice__check"><svg class="zxt-icon" style="width:12px;height:12px;"><use href="../shared/icons.svg#i-check"/></svg></div>' +
+            '<div class="dhs-voice__head"><div class="dhs-voice__avatar ' + cls + '">' + ch + '</div><div><div class="dhs-voice__name">' + v.name + '</div></div></div>' +
+            '<div class="dhs-voice__tags">' + v.tags.map(function(t){return '<span class="dhs-voice__tag">'+t+'</span>';}).join('') + '</div>' +
+            '<div class="dhs-voice__play"><svg class="zxt-icon"><use href="../shared/icons.svg#i-play"/></svg> 试听</div></div>';
+        }).join('') + '</div></div>';
+    }
+
+    return '<div class="wm-subtabs" id="subtabs">' + subTabsHtml + '</div>' +
+      '<div class="wm-grid-2"><div>' + subContent + '</div>' +
+      phonePreview({ hint: (state.ratio==='landscape'?'横版 16:9':'竖版 9:16') + ' · ' + state.resolution + ' · 批量 ' + state.batchSize + ' 条' }) +
+      '</div>';
+  }
+
+  function stepScript() {
+    return '<div class="wm-grid-2">' +
+      '<div>' +
+        '<div class="wm-section-title"><svg class="zxt-icon"><use href="../shared/icons.svg#i-file-text"/></svg>AI 生成脚本</div>' +
+        '<div class="wm-script">' +
+          '<div style="display:flex;gap:10px;margin-bottom:16px;">' +
+            '<input class="zxt-input" placeholder="输入主题，如：分享三个效率工具" value="分享三个效率翻倍的小工具"/>' +
+            '<button class="zxt-btn zxt-btn-primary" onclick="ZXT.toast.show(\'AI 正在生成脚本...\',\'info\')"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-sparkles"/></svg> 生成</button>' +
+          '</div>' +
+          VM.scripts.map(function (s) {
+            return '<div class="wm-script__item' + (state.selectedScript===s.id?' is-active':'') + '" data-script="' + s.id + '">' +
+              '<div class="wm-script__text">' + s.content + '</div>' +
+              (s.warning ? '<div class="wm-script__warn"><svg class="zxt-icon" style="width:14px;height:14px;"><use href="../shared/icons.svg#i-alert"/></svg> ' + s.warningText + '</div>' : '') +
+            '</div>';
+          }).join('') +
+          '<div class="wm-script__tools">' +
+            '<button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="ZXT.toast.show(\'已重新生成\',\'success\')"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-refresh"/></svg> 换一批</button>' +
+            '<button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="ZXT.toast.show(\'已复制到剪贴板\',\'success\')"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-copy"/></svg> 复制</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      phonePreview({ subtitle: (VM.scripts.find(function(s){return s.id===state.selectedScript;})||{}).content || '', hint: '脚本将作为旁白与字幕' }) +
+    '</div>';
+  }
+
+  function allMaterials() {
+    return VM.materials.recommended.concat(VM.materials.uploaded).concat(VM.materials.cloud);
+  }
+  function findMat(id) { return allMaterials().find(function(m){return m.id===id;}); }
+
+  function stepMaterial() {
+    function matGrid(list) {
+      return '<div class="wm-mat-grid">' + list.map(function (m) {
+        var sel = state.selectedMats.indexOf(m.id) >= 0;
+        var dur = m.durationSec ? Math.floor(m.durationSec/60)+':'+(m.durationSec%60<10?'0':'')+(m.durationSec%60) : '';
+        return '<div class="wm-mat' + (sel?' is-selected':'') + '" data-mat="' + m.id + '">' +
+          '<div class="wm-mat__cover"><img src="' + m.cover + '" onerror="this.style.display=\'none\'"/>' +
+            '<div class="wm-mat__check"><svg class="zxt-icon" style="width:11px;height:11px;color:#041817;"><use href="../shared/icons.svg#i-check"/></svg></div>' +
+            (dur ? '<span class="wm-mat__dur">' + dur + '</span>' : '') +
+          '</div>' +
+          '<div class="wm-mat__body"><div class="wm-mat__name">' + m.title + '</div></div>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+    return '<div class="wm-grid-2">' +
+      '<div>' +
+        '<div class="wm-section-title"><svg class="zxt-icon"><use href="../shared/icons.svg#i-film"/></svg>选择视频素材</div>' +
+        '<div class="zxt-tabs" data-tabs data-tabs-scope="matScope" style="margin-bottom:16px;">' +
+          '<div class="zxt-tabs__item is-active" data-tab="recommended">推荐素材</div>' +
+          '<div class="zxt-tabs__item" data-tab="uploaded">我上传的 <span class="zxt-tabs__count">' + VM.materials.uploaded.length + '</span></div>' +
+          '<div class="zxt-tabs__item" data-tab="cloud">云端素材</div>' +
+          '<div class="zxt-tabs__item" data-tab="bgm">背景音乐</div>' +
+        '</div>' +
+        '<div data-tabs-scope="matScope">' +
+          '<div data-tab-panel="recommended">' + matGrid(VM.materials.recommended) + '</div>' +
+          '<div data-tab-panel="uploaded" style="display:none;">' +
+            '<label class="wm-upload-zone" for="matUpload" style="margin-bottom:14px;">' +
+              '<svg class="zxt-icon" style="width:28px;height:28px;"><use href="../shared/icons.svg#i-upload"/></svg>' +
+              '<div>点击或拖拽视频到此处上传</div>' +
+              '<div class="zxt-text-xs">支持 MP4/MOV，单个 ≤ 500MB</div>' +
+              '<input type="file" id="matUpload" accept="video/*" multiple style="display:none;"/>' +
+            '</label>' +
+            matGrid(VM.materials.uploaded) +
+          '</div>' +
+          '<div data-tab-panel="cloud" style="display:none;">' + matGrid(VM.materials.cloud) + '</div>' +
+          '<div data-tab-panel="bgm" style="display:none;">' +
+            '<div class="wm-bgm">' + VM.materials.bgmLibrary.map(function (b) {
+              var sel = state.selectedBgm === b.id;
+              var mm = Math.floor(b.durationSec/60), ss = b.durationSec%60;
+              return '<div class="wm-bgm__item' + (sel?' is-active':'') + '" data-bgm="' + b.id + '">' +
+                '<div class="wm-bgm__play"><svg class="zxt-icon" style="width:14px;height:14px;"><use href="../shared/icons.svg#' + (sel?'i-pause':'i-play') + '"/></svg></div>' +
+                '<div class="wm-bgm__info"><div class="wm-bgm__name">' + b.name + '</div><div class="wm-bgm__meta">' + mm+':'+(ss<10?'0':'')+ss + ' · ' + b.mood + '</div></div>' +
+                '<span class="wm-bgm__tag ' + (b.isPurple?'wm-bgm__tag--purple':'wm-bgm__tag--normal') + '">' + b.mood + '</span>' +
+              '</div>';
+            }).join('') + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      phonePreview({ cover: (findMat(state.selectedMats[0])||{}).cover, hint: '已选 ' + state.selectedMats.length + ' 个素材 · BGM: ' + (VM.materials.bgmLibrary.find(function(b){return b.id===state.selectedBgm;})||{}).name }) +
+    '</div>';
+  }
+
+  function stepGenerate() {
+    return '<div>' +
+      '<div class="wm-section-title"><svg class="zxt-icon"><use href="../shared/icons.svg#i-loader"/></svg>生成任务</div>' +
+      '<div class="wm-tasks">' + VM.tasks.map(function (t) {
+        var cover = t.cover
+          ? '<div class="wm-task__cover"><img src="' + t.cover + '"/></div>'
+          : '<div class="wm-task__cover wm-task__cover--running"><svg class="zxt-icon zxt-spin" style="width:28px;height:28px;color:var(--zxt-info);" ' + (t.status==='failed'||t.status==='timeout'?'':'') + '><use href="../shared/icons.svg#' + (t.status==='failed'?'i-x-circle':(t.status==='timeout'?'i-clock':'i-loader')) + '"/></svg></div>';
+        var badge = '';
+        if (t.status==='done') badge = '<span class="zxt-badge zxt-badge--success">已完成</span>';
+        else if (t.status==='running') badge = '<span class="zxt-badge zxt-badge--info"><svg class="zxt-icon zxt-icon--sm zxt-spin" style="width:12px;height:12px;"><use href="../shared/icons.svg#i-loader"/></svg> 生成中</span>';
+        else if (t.status==='failed') badge = '<span class="zxt-badge zxt-badge--danger">生成失败</span>';
+        else if (t.status==='timeout') badge = '<span class="zxt-badge zxt-badge--warning">已超时</span>';
+        var progress = '';
+        if (t.status==='running') progress = '<div class="zxt-progress zxt-progress--sm" style="margin-top:8px;"><div class="zxt-progress__bar" style="width:62%"></div></div>';
+        var actions = '';
+        if (t.status==='done') actions = '<button class="zxt-btn zxt-btn-primary zxt-btn-sm" onclick="goStep(5)"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-eye"/></svg> 预览</button>';
+        else if (t.status==='failed') actions = '<button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="ZXT.toast.show(\'已重新提交\',\'success\')"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-refresh"/></svg> 重试</button>';
+        else if (t.status==='timeout') actions = '<button class="zxt-btn zxt-btn-ghost zxt-btn-sm" onclick="ZXT.toast.show(\'已重新生成\',\'success\')"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-refresh"/></svg> 重新生成</button>';
+        return '<div class="wm-task">' + cover +
+          '<div><div class="wm-task__title">' + t.title + '</div>' +
+            '<div class="wm-task__meta">' + badge + ' ' + t.meta + '</div>' +
+            progress +
+            (t.errorMessage ? '<div class="wm-task__err"><svg class="zxt-icon" style="width:14px;height:14px;flex-shrink:0;margin-top:1px;"><use href="../shared/icons.svg#i-alert"/></svg> ' + t.errorMessage + '</div>' : '') +
+          '</div>' +
+          '<div class="wm-task__actions">' + actions + '</div>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<div style="margin-top:24px;display:flex;gap:12px;">' +
+        '<button class="zxt-btn zxt-btn-ghost" onclick="goStep(3)"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-arrow-left"/></svg> 返回修改</button>' +
+        '<button class="zxt-btn zxt-btn-primary" onclick="goStep(5)"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-eye"/></svg> 查看成片</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function stepPreview() {
+    return '<div>' +
+      '<div class="wm-section-title"><svg class="zxt-icon"><use href="../shared/icons.svg#i-eye"/></svg>成片预览与审核</div>' +
+      '<div class="wm-preview-grid">' + VM.previewRows.map(function (p) {
+        var badge = p.status==='审核通过' ? '<span class="zxt-badge zxt-badge--success">审核通过</span>' : '<span class="zxt-badge zxt-badge--warning">审核中</span>';
+        var cover = p.cover ? '<img src="' + p.cover + '"/>' : '<div class="wm-upload-zone" style="min-height:200px;border:none;"><svg class="zxt-icon" style="width:30px;height:30px;"><use href="../shared/icons.svg#i-film"/></svg><div>渲染中...</div></div>';
+        return '<div class="wm-preview">' +
+          '<div class="wm-preview__cover">' + cover +
+            (p.durationText!=='--' ? '<span class="wm-preview__dur">' + p.durationText + '</span>' : '') +
+            '<div class="wm-preview__status">' + badge + '</div>' +
+          '</div>' +
+          '<div class="wm-preview__body"><div class="wm-preview__title">' + p.title + '</div><div class="wm-preview__note">' + p.note + '</div>' +
+            '<div style="display:flex;gap:8px;margin-top:12px;">' +
+              '<button class="zxt-btn zxt-btn-ghost zxt-btn-sm" style="flex:1;" onclick="ZXT.toast.show(\'演示原型，预览未接入\',\'info\')"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-play"/></svg> 播放</button>' +
+              '<button class="zxt-btn zxt-btn-primary zxt-btn-sm" style="flex:1;" onclick="ZXT.toast.show(\'演示原型，下载未接入\',\'info\')"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-download"/></svg> 下载</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<div style="margin-top:28px;padding:18px;border-radius:14px;background:var(--zxt-accent-soft);border:1px solid var(--zxt-border-strong);display:flex;gap:14px;align-items:center;">' +
+        '<svg class="zxt-icon" style="width:24px;height:24px;color:var(--zxt-info);flex-shrink:0;"><use href="../shared/icons.svg#i-check-circle"/></svg>' +
+        '<div style="flex:1;"><div style="font-weight:600;margin-bottom:2px;">混剪流程演示完成</div><div class="zxt-text-sm zxt-text-secondary">这是高保真原型，所有数据均为模拟，未连接任何后端接口。</div></div>' +
+        '<a class="zxt-btn zxt-btn-ghost zxt-btn-sm" href="../index.html"><svg class="zxt-icon zxt-icon--sm"><use href="../shared/icons.svg#i-home"/></svg> 返回首页</a>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderContent() {
+    var c = document.getElementById('wmContent');
+    var html = '';
+    if (state.step === 0) html = stepCreate();
+    else if (state.step === 1) html = stepParams();
+    else if (state.step === 2) html = stepScript();
+    else if (state.step === 3) html = stepMaterial();
+    else if (state.step === 4) html = stepGenerate();
+    else if (state.step === 5) html = stepPreview();
+    c.innerHTML = html;
+    document.getElementById('wmTitle').textContent = stepMeta[state.step].title;
+    document.getElementById('wmStepBadge').textContent = '第 ' + (state.step+1) + ' 步 / 共 6 步';
+    bindContentEvents();
+  }
+
+  function bindContentEvents() {
+    // 子 tab
+    document.querySelectorAll('.wm-subtab[data-sub]').forEach(function(t){
+      t.addEventListener('click', function(){ state.subTab = t.getAttribute('data-sub'); renderContent(); });
+    });
+    // 模板
+    document.querySelectorAll('.wm-tpl[data-tpl]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var id = el.getAttribute('data-tpl');
+        var t = VM.templates.find(function(x){return x.id===id;});
+        if (t.blank) { state.templateId = id; renderContent(); ZXT.toast.show('已选择空白模板','success'); return; }
+        document.getElementById('tplModalTitle').textContent = t.title;
+        document.getElementById('tplModalBody').innerHTML = '<div style="border-radius:12px;overflow:hidden;background:#000;"><img src="'+t.cover+'" style="width:100%;display:block;"/></div>' +
+          '<div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;"><span class="zxt-badge zxt-badge--info">'+(t.ratio==='landscape'?'横版 16:9':'竖版 9:16')+'</span><span class="zxt-badge zxt-badge--muted">分类：'+t.category+'</span><span class="zxt-badge zxt-badge--muted">'+t.uses+' 人使用</span></div>';
+        document.getElementById('tplModalConfirm').onclick = function(){ state.templateId = id; ZXT.modal.close('tplModal'); renderContent(); ZXT.toast.show('已选择模板：'+t.title,'success'); };
+        ZXT.modal.open('tplModal');
+      });
+    });
+    // 比例/清晰度
+    document.querySelectorAll('[data-ratio]').forEach(function(el){ el.addEventListener('click', function(){ state.ratio = el.getAttribute('data-ratio'); renderContent(); }); });
+    document.querySelectorAll('[data-res]').forEach(function(el){ el.addEventListener('click', function(){ state.resolution = el.getAttribute('data-res'); renderContent(); }); });
+    document.querySelectorAll('[data-batch]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var d = parseInt(el.getAttribute('data-batch'),10);
+        state.batchSize = Math.max(1, Math.min(10, state.batchSize + d));
+        renderContent();
+      });
+    });
+    // 项目名
+    var pn = document.getElementById('projName'); if (pn) pn.addEventListener('input', function(e){ state.projectName = e.target.value; });
+    // 标题
+    var ti = document.getElementById('titleInput');
+    if (ti) {
+      ti.addEventListener('input', function(e){ state.title = e.target.value; document.getElementById('titleCounter').textContent = e.target.value.length + ' / 30'; });
+      document.getElementById('titleCounter').textContent = ti.value.length + ' / 30';
+    }
+    var subSw = document.getElementById('subSwitch'); if (subSw) subSw.addEventListener('change', function(){ state.subtitle = subSw.checked; renderContent(); });
+    // 脚本
+    document.querySelectorAll('.wm-script__item[data-script]').forEach(function(el){
+      el.addEventListener('click', function(){ state.selectedScript = el.getAttribute('data-script'); renderContent(); });
+    });
+    // 素材选择
+    document.querySelectorAll('.wm-mat[data-mat]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var id = el.getAttribute('data-mat');
+        var idx = state.selectedMats.indexOf(id);
+        if (idx >= 0) state.selectedMats.splice(idx,1); else state.selectedMats.push(id);
+        renderContent();
+      });
+    });
+    // BGM
+    document.querySelectorAll('.wm-bgm__item[data-bgm]').forEach(function(el){
+      el.addEventListener('click', function(){ state.selectedBgm = el.getAttribute('data-bgm'); renderContent(); });
+    });
+    // 音色卡
+    document.querySelectorAll('.dhs-voice').forEach(function(el){
+      el.addEventListener('click', function(){
+        el.parentElement.querySelectorAll('.dhs-voice').forEach(function(x){x.classList.remove('is-active');});
+        el.classList.add('is-active');
+      });
+    });
+  }
+
+  window.goStep = function (n) { state.step = n; render(); };
+
+  function render() { renderSidebar(); renderContent(); window.scrollTo({top:0}); }
+
+  // 更新 steps 状态以反映进度
+  VM.steps.forEach(function(s,i){ if (i < state.step) s.status = 'done'; else if (i === state.step) s.status = 'active'; else s.status = 'locked'; });
+
+  render();
+})();
+</script>
+</body>
+</html>

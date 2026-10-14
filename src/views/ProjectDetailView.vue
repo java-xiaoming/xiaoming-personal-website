@@ -12,6 +12,11 @@ const project = computed(
     siteContent.projects.find((p) => p.slug === route.params.slug) || null
 )
 
+// 已替换为高保真原型的项目（如智小天）：旧文字案例链接直接跳转到原型
+if (typeof window !== 'undefined' && project.value?.prototypeUrl) {
+  window.location.replace(project.value.prototypeUrl)
+}
+
 // 案例六小节的标题与字段映射
 const caseSections = computed(() => {
   if (!project.value) return []
@@ -73,6 +78,23 @@ useSeo({
     >
       返回作品列表
     </router-link>
+  </div>
+
+  <!-- 已替换为高保真原型：跳转中的占位（无 JS 时也能手动进入） -->
+  <div
+    v-else-if="project.prototypeUrl"
+    class="mx-auto flex max-w-2xl flex-col items-center px-6 pb-32 pt-40 text-center"
+  >
+    <h1 class="text-2xl font-bold text-ink">正在打开「{{ project.title }}」高保真原型…</h1>
+    <p class="mt-4 text-muted">如未自动跳转，请点击下方按钮手动进入。</p>
+    <a
+      :href="project.prototypeUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="mt-8 inline-flex items-center rounded-full bg-brand-600 px-7 py-3 font-semibold text-white shadow-soft-md transition hover:bg-brand-700"
+    >
+      进入高保真原型
+    </a>
   </div>
 
   <!-- 作品详情 -->
